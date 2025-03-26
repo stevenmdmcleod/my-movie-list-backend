@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const logger = require("./util/logger");
+const logger = require("./logger");
 
 
 require('dotenv').config();
