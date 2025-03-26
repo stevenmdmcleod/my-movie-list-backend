@@ -1,5 +1,5 @@
 const {dbClient, s3} = require("../util/config");
-const {PutCommand, QueryCommand} = require("@aws-sdk/lib-dynamodb");
+const {PutCommand, QueryCommand, GetCommand, UpdateCommand} = require("@aws-sdk/lib-dynamodb");
 const logger = require("../util/logger");
 
 const TableName = 'my-movie-list-users';
@@ -17,6 +17,22 @@ async function createUser(user) {
     } catch (error) {
         logger.log(error);
         throw new Error("DAO: failed to register user");
+    }
+}
+
+async function getUserByUserId(userId) {
+    const command = new GetCommand({
+        TableName: TableName,
+        Key: {userId}
+    })
+
+    try{
+        const { Item } = await dbClient.send(command);
+        logger.info(`Query command to database complete ${JSON.stringify({userId})}`);
+        return Item;
+    }catch(error){
+        logger.error(error);
+        return null;
     }
 }
 
@@ -66,4 +82,25 @@ async function getUserByEmail(email) {
     }
 }
 
-module.exports = {createUser, getUserByUsername, getUserByEmail}
+async function changePassword(userId, password) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { userId },
+        UpdateExpression: "SET password = :password",
+        ExpressionAttributeValues: {
+            ":password": password
+        }
+    })
+
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to update user password")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to update user password");
+    }
+}
+
+module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword}
