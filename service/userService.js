@@ -64,5 +64,27 @@ function validateEmail(email) {
     return re.test(email);
 }
 
+async function changePassword(data, user) {
+    try {
+        const userFromUserId = await userDao.getUserByUserId(user.userId);
 
-module.exports = {createUser}
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+        
+        if(!(data.password.length > 7)) {
+            throw new Error("Password must be longer than 7 characters");
+        }
+
+        const saltRounds = 10;
+        const hashPass = await bcrypt.hash(data.password, saltRounds);
+
+        await userDao.changePassword(user.userId, hashPass);
+
+        logger.info(`Password successfully changed: ${user.userId}`);
+    } catch (error) {
+        throw error;
+    }
+}
+
+module.exports = {createUser, changePassword}

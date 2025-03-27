@@ -17,6 +17,20 @@ router.post("/register", validateUserData, async (req, res) => {
     }
 });
 
+router.post("/change-password", authenticateToken, async (req, res) => {
+    try {
+        if (!(req.body.password)) {
+            throw new Error("Password is missing");
+        }
+
+        await userService.changePassword(req.body, req.user);
+        res.status(200).json("Password successfully changed.")
+    } catch (error) {
+        logger.error(`Error changing password: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
 function validateUserData(req, res, next) {
     const data = req.body;
     if(data.username && data.password && data.email) {
