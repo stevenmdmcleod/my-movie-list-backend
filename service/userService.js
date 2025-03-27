@@ -87,4 +87,18 @@ async function changePassword(data, user) {
     }
 }
 
-module.exports = {createUser, changePassword}
+async function deleteUser(userToken) {
+    try {
+        const userFromUserId = await userDao.getUserByUserId(userToken.userId);
+
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+
+        await userDao.deleteUser(userToken.userId)
+    } catch (error) {
+        throw error;
+    }
+}
+
+module.exports = {createUser, changePassword, deleteUser}

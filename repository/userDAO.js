@@ -1,5 +1,5 @@
 const {dbClient, s3} = require("../util/config");
-const {PutCommand, QueryCommand, GetCommand, UpdateCommand} = require("@aws-sdk/lib-dynamodb");
+const {PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand} = require("@aws-sdk/lib-dynamodb");
 const logger = require("../util/logger");
 
 const TableName = 'my-movie-list-users';
@@ -103,4 +103,21 @@ async function changePassword(userId, password) {
     }
 }
 
-module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword}
+async function deleteUser(userId) {
+    const command = new DeleteCommand({
+        TableName,
+        Key: { userId }
+    })
+
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to delete user")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to delete user");
+    }
+}
+
+module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser}
