@@ -105,6 +105,19 @@ async function changePassword(data, user) {
     }
 }
 
+async function deleteUser(userToken) {
+    try {
+        const userFromUserId = await userDao.getUserByUserId(userToken.userId);
+
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+
+        await userDao.deleteUser(userToken.userId)
+    } catch (error) {
+        throw error;
+    }
+}
 
 function omit(obj, keyToOmit) {
     const { [keyToOmit]: omitted, ...rest } = obj;
@@ -112,4 +125,4 @@ function omit(obj, keyToOmit) {
   }
 
 
-module.exports = {createUser, changePassword, validateLogin}
+module.exports = {createUser, changePassword, validateLogin, deleteUser}
