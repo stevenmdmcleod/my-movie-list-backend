@@ -64,6 +64,24 @@ function validateEmail(email) {
     return re.test(email);
 }
 
+async function validateLogin(username, password){
+    if(!username || !password){
+        return null;
+    }
+
+    const user = await userDao.getUserByUsername(username);
+    if(!user){
+        return null;
+    }
+
+    if(user && (await bcrypt.compare(password, user.password)) ){
+        return omit(user, 'password');
+    }
+    else{
+        return null;
+    }
+}
+
 async function changePassword(data, user) {
     try {
         const userFromUserId = await userDao.getUserByUserId(user.userId);
@@ -101,4 +119,10 @@ async function deleteUser(userToken) {
     }
 }
 
-module.exports = {createUser, changePassword, deleteUser}
+function omit(obj, keyToOmit) {
+    const { [keyToOmit]: omitted, ...rest } = obj;
+    return rest;
+  }
+
+
+module.exports = {createUser, changePassword, validateLogin, deleteUser}

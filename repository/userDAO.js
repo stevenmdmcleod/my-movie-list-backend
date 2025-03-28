@@ -51,7 +51,7 @@ async function getUserByUsername(username) {
         if (Items.length == 0) {
             return null;
         }
-        logger.info(`Query command to database complete ${JSON.stringify({user_id: Items[0].user_id, username: Items[0].username})}`);
+        logger.info(`Query command to database complete ${JSON.stringify({user_id: Items[0].userId, username: Items[0].username})}`);
         return Items[0];  // Return first match
     } catch (err) {
         logger.error("Error querying by username:", err);
