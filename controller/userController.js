@@ -70,16 +70,21 @@ router.delete("/me", authenticateToken, async (req, res) => {
 
 router.get("/friends", authenticateToken, async (req, res) => {
     try {
+        if(!req.user || !req.user.userId){
+            return res.status(400).json({message: "Bad request, please make sure token attributes are correct."});
+        }
         
-        console.log(req.user.userId);
         const id = req.user.userId
         const friendslist = await userService.getFriendsList(id);
         return res.status(200).json(friendslist);
-        
+
     } catch (error) {
+        logger.error(`Error retrieving friends: ${error.message}`);
         return res.status(400).json(error.message);
     }
 });
+
+
 function validateUserData(req, res, next) {
     const data = req.body;
     if(data.username && data.password && data.email) {
