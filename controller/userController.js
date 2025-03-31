@@ -58,6 +58,20 @@ router.post("/change-password", authenticateToken, async (req, res) => {
     }
 })
 
+router.patch("/friends", authenticateToken, async (req, res) => {
+    if (!(req.body.username) || !(req.user) || !(req.user.userId)) {
+        return res.status(400).json({message: "Bad request: missing username or required token attributes"});
+    }
+
+    try {
+        await userService.addFriend(req.body.username, req.user.userId);
+        res.status(200).json("Friend successfully added.");
+    } catch (error) {
+        logger.error(`Error adding friend: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
 router.delete("/me", authenticateToken, async (req, res) => {
     try {
         await userService.deleteUser(req.user);

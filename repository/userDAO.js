@@ -103,6 +103,27 @@ async function changePassword(userId, password) {
     }
 }
 
+async function addFriend(newFriendsList, userId) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { userId },
+        UpdateExpression: "SET friends = :friends",
+        ExpressionAttributeValues: {
+            ":friends": newFriendsList
+        }
+    })
+
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to update user friends list")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to update user friends list");
+    }
+}
+
 async function deleteUser(userId) {
     const command = new DeleteCommand({
         TableName,
@@ -120,4 +141,4 @@ async function deleteUser(userId) {
     }
 }
 
-module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser}
+module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, addFriend}

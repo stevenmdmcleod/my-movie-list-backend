@@ -105,6 +105,39 @@ async function changePassword(data, user) {
     }
 }
 
+async function addFriend(friendUsername, userId) {
+    try {
+        const userFromUsername = await userDao.getUserByUsername(friendUsername);
+        if (!userFromUsername) {
+            throw new Error("Friend username could not be found");
+        }
+
+        const userFromUserId = await userDao.getUserByUserId(userId);
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+
+        for (let friend of userFromUserId.friends) {
+            if (friend.userId === userFromUsername.userId) {
+                throw new Error("User already friends");
+            }
+        }
+
+        let newFriendsList = [
+            ...userFromUserId.friends, 
+            {
+                userId:userFromUsername.userId, 
+                username:userFromUsername.username
+            }
+        ]
+        
+        await userDao.addFriend(newFriendsList, userId);
+        logger.info(`Friend successfully added: ${friendUsername} to ${userId}`);
+    } catch (error) {
+        throw error;
+    }
+}
+
 async function deleteUser(userToken) {
     try {
         const userFromUserId = await userDao.getUserByUserId(userToken.userId);
@@ -125,4 +158,4 @@ function omit(obj, keyToOmit) {
   }
 
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser}
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend}
