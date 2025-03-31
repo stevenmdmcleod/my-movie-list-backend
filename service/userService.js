@@ -181,6 +181,7 @@ async function getFriendsList(userId){
         throw(error);
     }
 }
+
 function omit(obj, keyToOmit) {
     const { [keyToOmit]: omitted, ...rest } = obj;
     return rest;
