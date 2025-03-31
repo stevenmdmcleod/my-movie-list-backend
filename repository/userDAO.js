@@ -152,4 +152,5 @@ async function deleteUser(userId) {
     }
 }
 
-module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, getFriendsListByUserId}
+
+module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, addFriend, getFriendsListByUserId}
