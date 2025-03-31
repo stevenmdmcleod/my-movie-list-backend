@@ -152,10 +152,41 @@ async function deleteUser(userToken) {
     }
 }
 
+
+async function getFriendsList(userId){
+    try {
+        if(!userId){
+            throw new error("need a valid userId");
+        }
+
+        let newfriendslist = [];
+        const friendslist = await userDao.getFriendsListByUserId(userId);
+        
+        if(!friendslist){
+            throw new error("friendslist not retrieved");
+        }
+
+        for(let i = 0; i < friendslist.length; i++){
+            currfriend = friendslist[i];
+            newfriendslist.push({
+                userId: currfriend.userId,
+                username: currfriend.username,
+                profilePicture: currfriend.profilePicture,
+                biography: currfriend.biography,
+                preferredGenres: currfriend.preferredGenres})
+        }
+        return newfriendslist;
+
+    } catch (error) {
+        throw(error);
+    }
+}
+
 function omit(obj, keyToOmit) {
     const { [keyToOmit]: omitted, ...rest } = obj;
     return rest;
   }
 
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend}
+
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList}

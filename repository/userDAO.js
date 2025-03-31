@@ -103,6 +103,36 @@ async function changePassword(userId, password) {
     }
 }
 
+async function getFriendsListByUserId(userId) {
+    const command = new GetCommand({
+        TableName: TableName,
+        Key: {userId}
+    })
+
+    let friendslist = [];
+    try{
+        const { Item } = await dbClient.send(command);
+        logger.info(`Get command to database complete ${JSON.stringify({userId})}`);
+        for(let i = 0; i < Item.friends.length; i++){
+            let friend = await getUserByUserId(Item.friends[i].userId);
+            if(!friend){
+                Item.friends.splice(i,1);
+                i--;
+            }
+            else{
+                friendslist.push(friend);
+            }
+        }
+        logger.info(`Get command to database complete ${JSON.stringify({"user whos list was \
+            queried ": userId, "current friends of user queried": Item.friends})}`);
+        await createUser(Item); // put the user back in the database with updated friends list
+        return friendslist;
+    }catch(error){
+        logger.error(error);
+        return null;
+    }
+}
+
 async function addFriend(newFriendsList, userId) {
     const command = new UpdateCommand({
         TableName,
@@ -124,6 +154,7 @@ async function addFriend(newFriendsList, userId) {
     }
 }
 
+
 async function deleteUser(userId) {
     const command = new DeleteCommand({
         TableName,
@@ -141,4 +172,5 @@ async function deleteUser(userId) {
     }
 }
 
-module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, addFriend}
+
+module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, addFriend, getFriendsListByUserId}
