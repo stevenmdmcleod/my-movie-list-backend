@@ -141,4 +141,43 @@ function validateFileType(file) {
     return allowedTypes.includes(file.mimetype);
 }
 
+router.patch("/:userId/ban-status", authenticateToken, validateBanRequest, async ( req, res) => {
+    try {
+        await userService.banUser(req.params.userId, req.body.status);
+        res.status(200).json(`User has been successfully ${req.body.status}`);
+    } catch (error) {
+        logger.error(`Error banning account: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+  })
+
+function validateBanRequest(req,res,next) {
+    if (!(req.body.status) || req.body.status.length == 0) {
+        logger.error(`Error banning account: missing ban status`);
+        return res.status(400).json({message: "Bad request: missing ban status"});
+    }
+  
+    if (req.body.status !== 'banned' && req.body.status !== 'unbanned') {
+        logger.error(`Error banning account: invalid ban status`);
+        return res.status(400).json({message: "Bad request: invalid ban status"});
+    }
+  
+    if (!(req.user)) {
+        logger.error(`Error banning account: missing JWT information`);
+        return res.status(400).json({message: "Bad request: missing required JWT information"});
+    }
+    
+    if (req.params.userId === req.user.userId) {
+        logger.error(`Error banning account: admin cannot ban themselves`);
+        return res.status(403).json({message: "Forbidden Access: admin cannot ban themselves"});
+    }
+  
+    if (req.user.isAdmin == false) {
+        logger.error(`Error banning account: non-admin attempting access to admin route`);
+        return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+    }
+  
+    next();
+  }
+
 module.exports = router;
