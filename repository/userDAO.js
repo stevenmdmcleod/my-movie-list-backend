@@ -245,6 +245,27 @@ async function updateProfile(userId, profile) {
     }
 }
 
+async function banUser(userId, banStatus) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { userId },
+        UpdateExpression: "SET isBanned = :isBanned",
+        ExpressionAttributeValues: {
+            ":isBanned": banStatus
+        }
+    })
+  
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to update user ban status")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to update user ban status");
+    }
+  }
+
 module.exports = {
     createUser, 
     getUserByUsername, 
@@ -257,5 +278,6 @@ module.exports = {
     updateProfile, 
     generateSignedUrl,
     deleteS3File,
-    uploadFileToS3
+    uploadFileToS3,
+    banUser
 }

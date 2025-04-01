@@ -184,6 +184,28 @@ async function getFriendsList(userId){
     }
 }
 
+async function banUser(userId, banStatus) {
+    try {
+        const userFromUserId = await userDao.getUserByUserId(userId);
+  
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+  
+        if (banStatus === 'banned'){
+            await userDao.banUser(userId, true);
+            logger.info(`User ban status changed changed: ${userId}, ${banStatus}`);
+        }
+  
+        if (banStatus === 'unbanned'){
+            await userDao.banUser(userId, false);
+            logger.info(`User ban status changed changed: ${userId}, ${banStatus}`);
+        }
+    } catch (error) {
+        throw error;
+    }
+  }
+
 function omit(obj, keyToOmit) {
     const { [keyToOmit]: omitted, ...rest } = obj;
     return rest;
@@ -232,4 +254,4 @@ function omit(obj, keyToOmit) {
     }
 }
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile}
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile, banUser}
