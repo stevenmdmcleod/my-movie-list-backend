@@ -1,8 +1,11 @@
 const {dbClient, s3} = require("../util/config");
 const {PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand} = require("@aws-sdk/lib-dynamodb");
 const logger = require("../util/logger");
+const {PutObjectCommand, GetObjectCommand, DeleteObjectCommand} = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const TableName = 'my-movie-list-users';
+const BucketName = process.env.BUCKET_NAME;
 
 async function createUser(user) {
     const command = new PutCommand({
@@ -172,5 +175,87 @@ async function deleteUser(userId) {
     }
 }
 
+async function uploadFileToS3(file, fileName) {
+    const params = {
+        Bucket: BucketName,
+        Key: fileName,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+    };
 
-module.exports = {createUser, getUserByUsername, getUserByEmail, getUserByUserId, changePassword, deleteUser, addFriend, getFriendsListByUserId}
+    try {
+        await s3.send(new PutObjectCommand(params));
+        return fileName; // Return file path
+    } catch (error) {
+        console.error("AWS S3 upload failed:", error);
+        throw new Error("File upload failed");
+    }
+}
+
+async function deleteS3File(filePath) {
+    if (!filePath) return;
+    try {
+        await s3.send(new DeleteObjectCommand({
+            Bucket: BucketName,
+            Key: filePath,
+        }));
+    } catch (error) {
+        console.error("Error deleting old profile image:", error);
+    }
+}
+
+async function generateSignedUrl(fileName) {
+    try {
+        const getObjectCommand = new GetObjectCommand({
+            Bucket: BucketName,
+            Key: fileName,
+        });
+
+        return await getSignedUrl(s3, getObjectCommand, { expiresIn: 3600 });
+    } catch (error) {
+        console.error("Error generating signed URL:", error);
+        throw new Error("Could not generate signed URL");
+    }
+}
+
+async function updateProfile(userId, profile) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { userId },
+        UpdateExpression: "SET biography = :biography, preferredGenres = :preferredGenres, profilePicture = :profilePicture",
+        ExpressionAttributeValues: {
+            ":biography": profile.biography,
+            ":preferredGenres": profile.preferredGenres,
+            ":profilePicture": profile.profilePicture
+        },
+        ReturnValues: "ALL_NEW"
+    });
+
+    try {
+        const data = await dbClient.send(command);
+        return {
+            userId,
+            biography: data.Attributes.biography,
+            preferredGenres: data.Attributes.preferredGenres,
+            profilePicture: data.Attributes.profilePicture
+        };
+    } catch (error) {
+        logger.log(error);
+        throw error;
+    }
+}
+
+module.exports = {
+    createUser, 
+    getUserByUsername, 
+    getUserByEmail, 
+    getUserByUserId, 
+    changePassword, 
+    deleteUser, 
+    addFriend, 
+    getFriendsListByUserId,
+    updateProfile, 
+    generateSignedUrl,
+    deleteS3File,
+    uploadFileToS3
+}
