@@ -6,6 +6,10 @@ const jwt = require("jsonwebtoken");
 const { authenticateToken } = require("../util/jwt");
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({storage: storage});
 
 router.post("/register", validateUserData, async (req, res) => {
     try {
@@ -106,6 +110,35 @@ function validateUserData(req, res, next) {
     } else {
         res.status(400).json("Username, email and password required");
     }
+}
+
+router.put('/update-profile', authenticateToken, upload.single('image'), async (req, res) => {
+    
+    try {
+        const { biography, preferredGenres } = req.body;
+
+        const file = req.file; 
+
+        // if (!file) {
+        //     return res.status(400).json({ error: "No file to upload"});
+        // }
+
+        if (file && !validateFileType(file)) {
+            return res.status(400).json({ error: "Invalid file type. Only JPEG, JPG, and PNG are allowed." });
+        }
+        
+        const result = await userService.updateUserProfile(req.user, { biography, preferredGenres }, file);
+
+        res.status(200).json(result);
+      } catch (error) {
+        logger.error(`Error updating profile: ${error.message}`);
+        res.status(400).json({ error: error.message });
+      }
+});
+
+function validateFileType(file) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    return allowedTypes.includes(file.mimetype);
 }
 
 module.exports = router;

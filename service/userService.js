@@ -45,7 +45,9 @@ async function createUser(user) {
             biography: "",
             preferredGenres: [],
             friends: [],
-            recentlyAdded: []
+            recentlyAdded: [],
+            collaborativeLists: [],
+            likedLists: []
         });
         logger.info(`User successfully created: ${user.username}`);
         return result;
@@ -187,6 +189,47 @@ function omit(obj, keyToOmit) {
     return rest;
   }
 
+  async function updateUserProfile(user, userData, file) {
 
+    try {
+        const oldProfile = await userDao.getUserByUserId(user.userId);
+        if (!oldProfile) {
+            throw new Error("User could not be found");
+        }
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList}
+        let fileName = oldProfile.profilePicture; // Retain existing profile picture if no file is uploaded
+
+        // If a new file is uploaded, generate a new filePath, upload new image to S3, and delete the old image
+        if (file) {
+            fileName = `profile/${uuid.v4()}-${file.originalname}`;
+
+            await Promise.all([
+                userDao.deleteS3File(oldProfile.profilePicture),
+                userDao.uploadFileToS3(file, fileName)
+            ]);
+        } 
+
+        // Generate signed URL if a profile picture exists
+        signedUrl = fileName ? await userDao.generateSignedUrl(fileName) : null;
+
+        // Merge updated data with existing profile
+        const newProfile = {
+            biography: userData.biography?.trim() || oldProfile.biography,
+            preferredGenres: userData.preferredGenres?.length ? userData.preferredGenres : oldProfile.preferredGenres,
+            profilePicture: fileName
+        };
+
+        const updatedProfile = await userDao.updateProfile(user.userId, newProfile);
+
+        return {
+            message: "Profile updated successfully",
+            user: updatedProfile,
+            signedUrl
+        };
+    } catch (error) {
+        logger.error(`Error in updateUserProfile: ${error.stack}`);
+        throw error;
+    }
+}
+
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile}
