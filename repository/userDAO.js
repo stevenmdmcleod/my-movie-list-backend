@@ -266,6 +266,27 @@ async function banUser(userId, banStatus) {
     }
   }
 
+async function updateLikedLists(userId, newLikedLists) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { userId },
+        UpdateExpression: "SET likedLists = :likedLists",
+        ExpressionAttributeValues: {
+            ":likedLists": newLikedLists
+        }
+    })
+  
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to update user ban status")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to update user ban status");
+    }
+}
+
 module.exports = {
     createUser, 
     getUserByUsername, 
@@ -279,5 +300,6 @@ module.exports = {
     generateSignedUrl,
     deleteS3File,
     uploadFileToS3,
-    banUser
+    banUser,
+    updateLikedLists
 }
