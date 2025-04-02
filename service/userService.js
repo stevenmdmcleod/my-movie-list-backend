@@ -211,7 +211,7 @@ function omit(obj, keyToOmit) {
     return rest;
   }
 
-  async function updateUserProfile(user, userData, file) {
+async function updateUserProfile(user, userData, file) {
 
     try {
         const oldProfile = await userDao.getUserByUserId(user.userId);
