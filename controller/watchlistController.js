@@ -54,4 +54,25 @@ router.put("/:listId", authenticateToken, async (req, res) => {
     }
 });
 
+
+router.get("/:listId", authenticateToken, async (req, res) => {
+    if(!req.user || !req.params.listId){
+        return res.status(400).json({message: "Bad request data"});
+    }
+    
+    user = req.user;
+    listId = req.params.listId;
+
+    try {
+        result = await watchlistService.getWatchlist(user, listId);
+
+        if(!result){
+            return res.status(400).json("User does not have permission to get this watchlist");
+        }
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(400).json(error);
+    }
+});
+
 module.exports = router;

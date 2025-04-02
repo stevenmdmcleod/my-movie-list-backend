@@ -22,7 +22,7 @@ async function createWatchlist(list) {
 }
 
 
-async function getListByUserIdAndListName(userId, listName) {
+async function getWatchlistByUserIdAndListName(userId, listName) {
     const command = new QueryCommand({
         TableName,
         IndexName: "userId-listName-index",  
@@ -94,4 +94,4 @@ async function updateWatchlist(listId, updates) {
     }
 }
 
-module.exports = {createWatchlist, getListByUserIdAndListName, getWatchlistByListId, updateWatchlist}
+module.exports = {createWatchlist, getWatchlistByUserIdAndListName, getWatchlistByListId, updateWatchlist}
