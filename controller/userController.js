@@ -14,7 +14,7 @@ const upload = multer({storage: storage});
 router.post("/register", validateUserData, async (req, res) => {
     try {
         const data = await userService.createUser(req.body);
-        res.status(201).json("Registration successful.");
+        res.status(201).json({message: "Registration successful.", user: {userId: data.userId, username: data.username, email: data.email}});
     } catch (err) {
         logger.error(`Error registering user: ${err.message}`);
         res.status(400).json(err.message);
