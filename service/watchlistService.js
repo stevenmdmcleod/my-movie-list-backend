@@ -65,7 +65,7 @@ async function likeWatchlist(userId, listId) {
     }
 
     await userDao.updateLikedLists(userId, user.likedLists);
-    await watchlistDao.updateLikes(listId, watchlist.likes);
+    await watchlistDao.updateWatchlist(listId, {likes: watchlist.likes})
 
     logger.info(`Watchlist and User likes successfully updated: ${listId} AND ${userId}`);
     return action;
