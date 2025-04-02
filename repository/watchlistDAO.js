@@ -47,25 +47,51 @@ async function getListByUserIdAndListName(userId, listName) {
     }
 }
 
-async function updateLikes(listId, newLikes) {
-    const command = new UpdateCommand({
-        TableName,
-        Key: { listId },
-        UpdateExpression: "SET likes = :likes",
-        ExpressionAttributeValues: {
-            ":likes": newLikes
-        }
-    })
-  
+async function getWatchlistByListId(listId) {
     try {
-        const data = await dbClient.send(command);
-        if (data['$metadata'].httpStatusCode != 200) {
-            throw new Error("DAO: failed to update user ban status")
-        }
+        const command = new GetCommand({
+            TableName,
+            Key: { listId }
+        });
+
+        const result = await dbClient.send(command);
+        logger.info(`Query command to database complete. ListId: ${listId}`);
+        return result.Item || null;
     } catch (error) {
-        logger.log(error);
-        throw new Error("DAO: failed to update user ban status");
+        logger.error("Error fetching watchList:", error);
+        throw new Error("Failed to fetch watchList.");
     }
 }
 
-module.exports = {createWatchlist, getListByUserIdAndListName, updateLikes}
+async function updateWatchlist(listId, updates) {
+    try {
+        if (!updates || Object.keys(updates).length === 0) {
+            throw new Error("No fields provided to update.");
+        }
+
+        let updateExpressions = [];
+        let expressionAttributeValues = {};
+
+        // Construct UpdateExpression dynamically
+        for (const [key, value] of Object.entries(updates)) {
+            updateExpressions.push(`${key} = :${key}`);
+            expressionAttributeValues[`:${key}`] = value;
+        }
+
+        const command = new UpdateCommand({
+            TableName,
+            Key: { listId },
+            UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ReturnValues: "ALL_NEW"
+        });
+
+        const result = await dbClient.send(command);
+        return result.Attributes;
+    } catch (error) {
+        logger.error("Error updating watchList:", error);
+        throw new Error("Failed to update watchList.");
+    }
+}
+
+module.exports = {createWatchlist, getListByUserIdAndListName, getWatchlistByListId, updateWatchlist}

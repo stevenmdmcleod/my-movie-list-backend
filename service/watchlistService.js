@@ -71,4 +71,39 @@ async function likeWatchlist(userId, listId) {
     return action;
 }
 
-module.exports = {createWatchlist, likeWatchlist}
+async function updateWatchlist(userId, listId, data) {
+
+    try {
+        const { isPublic, listName } = data;
+
+        if (!listName?.trim()) {
+            throw new Error("List name cannot be empty.");
+        }
+        if (typeof isPublic !== "boolean") {
+            throw new Error("isPublic must be a boolean.");
+        }
+
+        const existingWatchList = await watchlistDao.getWatchlistByListId(listId);
+        
+        if (!existingWatchList) {
+            throw new Error("WatchList not found");
+        }
+
+        if (existingWatchList.userId !== userId) {
+            throw new Error("Unauthorized: You can only update your own watchlist.");
+        }
+
+        const updatedList = await watchlistDao.updateWatchlist(listId, {listName, isPublic});
+
+        return {
+            message: "Watchlist updated successfully",
+            watchlist: updatedList
+        };
+    } catch (error) {
+        logger.error(`Error in updateWatchList service: ${error.stack}`);
+        throw error;
+    }
+}
+
+
+module.exports = {createWatchlist, updateWatchlist, likeWatchlist}
