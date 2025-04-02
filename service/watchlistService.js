@@ -94,6 +94,14 @@ async function updateWatchlist(userId, listId, data) {
             throw new Error("Unauthorized: You can only update your own watchlist.");
         }
 
+        const watchlistByName = await watchlistDao.getWatchlistByUserIdAndListName(userId, listName);
+
+        // Check if the name already exists
+        // If a list with that name is found, ckeck if it is the same as the one currently being updated
+        if (watchlistByName && watchlistByName[0].listId !== listId) {
+            throw new Error("A watchlist with that name already exists!");
+        }
+
         const updatedList = await watchlistDao.updateWatchlist(listId, {listName, isPublic});
 
         return {
