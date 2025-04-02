@@ -62,6 +62,9 @@ router.put("/:listId", authenticateToken, async (req, res) => {
         if (err.message === "Unauthorized: You can only update your own watchlist.") {
             return res.status(403).json({ error: err.message });
         }
+        if (err.message === "A watchlist with that name already exists!") {
+            return res.status(409).json({ error: err.message });
+        }
 
         // server error
         res.status(500).json({ error: "Internal Server Error" });
