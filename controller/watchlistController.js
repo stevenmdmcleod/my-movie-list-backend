@@ -25,6 +25,20 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 });
 
+router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
+    if(!req.user.userId){
+        return res.status(400).json("invalid token data");
+    }
+
+    try {
+        const result = await watchlistService.likeWatchlist(req.user.userId, req.params.listId);
+        res.status(200).json(`List has been successfully ${result}`);
+    } catch (error) {
+        logger.error(`Error liking watchlist: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
 //update list name and isPublic
 router.put("/:listId", authenticateToken, async (req, res) => {
     try {
