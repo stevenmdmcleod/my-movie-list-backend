@@ -1,24 +1,26 @@
 const watchlistDao = require("../repository/watchlistDAO");
 const uuid = require('uuid');
 const logger = require("../util/logger");
+const { error } = require("winston");
 
 async function createWatchlist(userId, listName) {
     
-    try { 
+    if(!userId || !listName){
+        throw new Error("invalid data");
+    }
+    if(listName.length < 1 || listName.length > 30){
+        throw new Error("listName must be between 1 and 30 characters long");
+    }
+    if(listName.indexOf(" ") >= 0){
+        throw new Error("listName can not contain spaces!");
+    }
 
-        if (userByUsername) {
-            logger.info("Username already exists");
-            throw new Error("Username already exists");
-        }
+    const watchlist = await watchlistDao.getListByUserIdAndListName(userId, listName);
+    if(watchlist){
+        throw new Error("watchlist with that name already exists!");
+    }
 
-        const userByEmail = await userDao.getUserByEmail(user.email);
-
-        if (userByEmail) {
-            logger.info("Email already exists");
-            throw new Error("Email already exists");
-        }
-
-        
+    try {    
         const listId = uuid.v4();
         const result = await watchlistDao.createWatchlist({
             listId,
@@ -29,15 +31,14 @@ async function createWatchlist(userId, listName) {
             titles: [],
             comments: [],
             isPublic: true
-            
-
-
-
         });
-        logger.info(`List successfully created: ${user.username}`);
+        logger.info(`List successfully created: ${listName}`);
         return result;
     } catch (err) {
         logger.error(`Error in PostList: ${err.message}`);
         throw err;
     }    
 }
+
+
+module.exports = {createWatchlist}
