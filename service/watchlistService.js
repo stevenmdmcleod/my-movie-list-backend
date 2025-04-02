@@ -16,7 +16,7 @@ async function createWatchlist(userId, listName) {
         throw new Error("listName can not contain spaces!");
     }
 
-    const watchlist = await watchlistDao.getListByUserIdAndListName(userId, listName);
+    const watchlist = await watchlistDao.getWatchlistByUserIdAndListName(userId, listName);
     if(watchlist){
         throw new Error("watchlist with that name already exists!");
     }
@@ -106,5 +106,35 @@ async function updateWatchlist(userId, listId, data) {
     }
 }
 
+async function getWatchlist(user, listId){
+    try {
 
-module.exports = {createWatchlist, updateWatchlist, likeWatchlist}
+        if(!listId || !user){
+            throw new Error("bad data");
+        }
+    
+        const watchlist = await watchlistDao.getWatchlistByListId(listId);
+    
+        if(!watchlist){
+            throw new Error("Watchlist doesn't exist!");
+        }
+        if(watchlist.isPublic){
+            return watchlist;
+        }
+
+        collaboratorIndex = watchlist.collaborators.indexOf(user.userId);
+
+
+        if((user.userId != watchlist.userId) && (collaboratorIndex < 0) && !(user.isAdmin)){
+            return null;
+        }
+        return watchlist;
+
+    } catch (error) {
+        logger.error(`Error in getWatchlist service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist}
