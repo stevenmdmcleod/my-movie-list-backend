@@ -24,5 +24,30 @@ router.post("/", authenticateToken, async (req, res) => {
         res.status(400).json(err.message);
     }
 });
+// As a user I can like and unlike under another user’s lists.
+
+// PUT to /watchlist/:listId/likes  - JWT required
+
+// Add ‘likedLists’ attribute to user table. Stores a list of listId. Update registration function to include empty list on user creation.
+
+// Check watchlist ‘likes’ and users ‘likedList’
+
+// If userId exists in list, then remove it (unlike). If it is not found, then it is added (a like).
+
+// Return status message: liked or disliked
+
+router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
+    if(!req.user.userId){
+        return res.status(400).json("invalid token data");
+    }
+
+    try {
+        const result = await watchlistService.likeWatchlist(req.user.userId, req.params.listId);
+        res.status(200).json(`List has been successfully ${result}`);
+    } catch (error) {
+        logger.error(`Error liking watchlist: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
 
 module.exports = router;

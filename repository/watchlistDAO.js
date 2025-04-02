@@ -47,5 +47,25 @@ async function getListByUserIdAndListName(userId, listName) {
     }
 }
 
+async function updateLikes(listId, newLikes) {
+    const command = new UpdateCommand({
+        TableName,
+        Key: { listId },
+        UpdateExpression: "SET likes = :likes",
+        ExpressionAttributeValues: {
+            ":likes": newLikes
+        }
+    })
+  
+    try {
+        const data = await dbClient.send(command);
+        if (data['$metadata'].httpStatusCode != 200) {
+            throw new Error("DAO: failed to update user ban status")
+        }
+    } catch (error) {
+        logger.log(error);
+        throw new Error("DAO: failed to update user ban status");
+    }
+}
 
-module.exports = {createWatchlist, getListByUserIdAndListName}
+module.exports = {createWatchlist, getListByUserIdAndListName, updateLikes}

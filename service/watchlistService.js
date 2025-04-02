@@ -1,4 +1,5 @@
 const watchlistDao = require("../repository/watchlistDAO");
+const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
 const logger = require("../util/logger");
 const { error } = require("winston");
@@ -40,5 +41,34 @@ async function createWatchlist(userId, listName) {
     }    
 }
 
+async function likeWatchlist(userId, listId) {
+    const user = await userDao.getUserByUserId(userId);
 
-module.exports = {createWatchlist}
+    if (!user) {
+        throw new Error("User could not be found");
+    }
+
+    const watchlist = await watchlistDao.getWatchlistByListId(listId);
+    if (!watchlist) {
+        throw new Error("Watchlist could not be found")
+    }
+
+    let action;
+    if (watchlist.likes.includes(userId)) {
+        watchlist.likes = watchlist.likes.filter(id => id !== userId);
+        user.likedLists = user.likedLists.filter(id => id !== listId);
+        action = 'disliked';
+    } else {
+        watchlist.likes.push(userId);
+        user.likedLists.push(listId);
+        action = 'liked';
+    }
+
+    await userDao.updateLikedLists(userId, user.likedLists);
+    await watchlistDao.updateLikes(listId, watchlist.likes);
+
+    logger.info(`Watchlist and User likes successfully updated: ${listId} AND ${userId}`);
+    return action;
+}
+
+module.exports = {createWatchlist, likeWatchlist}
