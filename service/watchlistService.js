@@ -144,13 +144,7 @@ async function getWatchlist(user, listId){
     }
     
 }
-// Check if userId is on friends list
 
-// Check if userId is owner of watchlist
-
-// Save userId to collaborators attribute on watchlist.
-
-// Save listId on the user
 async function addCollaborators(userId, listId, collaboratorId) {
     try {
         const watchlist = await watchlistDao.getWatchlistByListId(listId);
@@ -198,10 +192,10 @@ async function addCollaborators(userId, listId, collaboratorId) {
             ...watchlist.collaborators,
             collaborator.userId
         ]
-        console.log('here')
+
         await watchlistDao.updateWatchlist(watchlist.listId, {collaborators: newWatchlistCollaborators});
         await userDao.updateUser(collaborator.userId, {collaborativeLists: newCollaboratorCollaborativeLists});
-        console.log('there')
+
         logger.info(`Watchlist and User collaborators successfully updated: ${watchlist.listId} AND ${collaborator.userId}`);
     } catch (error) {
         throw error
