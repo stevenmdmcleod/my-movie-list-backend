@@ -27,7 +27,7 @@ describe("updateWatchlist", () => {
         });
     });
 
-    it("should not throw an error if the watchlist with the same name is the one being updated", async () => {
+    test("should not throw an error if the watchlist with the same name is the one being updated", async () => {
         const userId = "user123";
         const listId = "list123";
         const listName = "my list";
@@ -70,62 +70,102 @@ describe("updateWatchlist", () => {
 
 describe("commentOnWatchList", () => {
     const userId = "user-123";
-    const username = "testUser";
+    const username = "user123";
+    const anotherUserId = "user-456";
     const listId = "list-456";
     const comment = "This is a test comment";
 
-    it("should add a comment successfully if the list is public", async () => {
-        const existingWatchList = { listId, isPublic: true, comments: [], collaborators: [] };
-
-        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
-        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [comment] });
-
-        const result = await watchlistService.commentOnWatchList({ userId, username }, { listId, comment });
-
-        expect(result).toHaveProperty("message", "Comment added successfully");
-        expect(result.comment).toHaveProperty("comment", comment);
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it("should add a comment successfully if the user is the owner of a private list", async () => {
+    test("should add a comment successfully to a public watchlist", async () => {
+
+        const existingWatchList = {
+            listId,
+            isPublic: true,
+            userId: anotherUserId,
+            collaborators: [],
+            comments: []
+        };
+
+        const mockComment = {
+            commentId: "mock-comment-id-123",
+            userId: userId,
+            username: username,
+            comment: comment,
+            datePosted: new Date().toISOString()
+        };
+        uuid.v4.mockReturnValue("mock-comment-id-123");
+        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
+        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [mockComment] });
+
+        const result = await watchlistService.commentOnWatchList({ userId, username, listId, comment });
+
+        expect(result.message).toBe("Comment added successfully");
+        expect(result.comment.commentId).toBeDefined();
+        expect(result.comment.comment).toBe(comment);
+    });
+
+    test("should add a comment successfully if the user is the owner of a private list", async () => {
+
         const existingWatchList = { listId, isPublic: false, userId, collaborators: [], comments: [] };
 
-        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
-        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [comment] });
+        const mockComment = {
+            commentId: "mock-comment-id-123",
+            userId: userId,
+            username: username,
+            comment: comment,
+            datePosted: new Date().toISOString()
+        };
 
-        const result = await watchlistService.commentOnWatchList({ userId, username }, { listId, comment });
+        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
+        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [mockComment] });
+
+        const result = await watchlistService.commentOnWatchList({ userId, username, listId, comment });
 
         expect(result).toHaveProperty("message", "Comment added successfully");
     });
 
-    it("should add a comment successfully if the user is a collaborator on a private list", async () => {
-        const existingWatchList = { listId, isPublic: false, userId: "owner-123", collaborators: [userId], comments: [] };
+    test("should add a comment successfully if the user is a collaborator on a private list", async () => {
+       
+        const existingWatchList = { listId, isPublic: false, userId: anotherUserId, collaborators: [userId], comments: [] };
+
+        const mockComment = {
+            commentId: "mock-comment-id-123",
+            userId: userId,
+            username: username,
+            comment: comment,
+            datePosted: new Date().toISOString()
+        };
 
         watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
-        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [comment] });
+        watchlistDao.updateWatchlist.mockResolvedValue({ ...existingWatchList, comments: [mockComment] });
 
-        const result = await watchlistService.commentOnWatchList({ userId, username }, { listId, comment });
+        const result = await watchlistService.commentOnWatchList({ userId, username, listId, comment });
 
         expect(result).toHaveProperty("message", "Comment added successfully");
     });
 
-    it("should throw an error if the user is not allowed to comment on a private list", async () => {
-        const existingWatchList = { listId, isPublic: false, userId: "owner-123", collaborators: [] };
+    test("should throw an error if the user is not allowed to comment on a private list", async () => {
+
+        const existingWatchList = { listId, isPublic: false, userId: anotherUserId, collaborators: []};
 
         watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
 
-        await expect(watchlistService.commentOnWatchList({ userId, username }, { listId, comment }))
+        await expect(watchlistService.commentOnWatchList({ userId, username, listId, comment }))
             .rejects.toThrow("Unauthorized: You cannot comment on this watchlist.");
     });
 
-    it("should throw an error if the watchlist does not exist", async () => {
+    test("should throw an error if the watchlist does not exist", async () => {
         watchlistDao.getWatchlistByListId.mockResolvedValue(null);
 
-        await expect(watchlistService.commentOnWatchList({ userId, username }, { listId, comment }))
+        await expect(watchlistService.commentOnWatchList({ userId, username, listId, comment }))
             .rejects.toThrow("WatchList not found");
     });
 
-    it("should throw an error if the comment is empty", async () => {
-        await expect(watchlistService.commentOnWatchList({ userId, username }, { listId, comment: "" }))
+    test("should throw an error if the comment is empty", async () => {
+        await expect(watchlistService.commentOnWatchList({ userId, username, listId, comment:"" }))
             .rejects.toThrow("Comment cannot be empty.");
     });
 });

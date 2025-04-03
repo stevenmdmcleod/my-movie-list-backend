@@ -79,7 +79,7 @@ router.put("/:listId/comments", authenticateToken, async (req, res) => {
         const userId = req.user.userId;
         const username = req.user.username;
 
-        const data = await watchlistService.commentOnWatchList({userId, username}, { listId, comment });
+        const data = await watchlistService.commentOnWatchList({userId, username, listId, comment} );
 
         res.status(200).json(data);
     } catch (err) {
