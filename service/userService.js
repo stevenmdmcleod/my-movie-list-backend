@@ -109,31 +109,40 @@ async function changePassword(data, user) {
 
 async function addFriend(friendUsername, userId) {
     try {
-        const userFromUsername = await userDao.getUserByUsername(friendUsername);
-        if (!userFromUsername) {
+        const friend = await userDao.getUserByUsername(friendUsername);
+        if (!friend) {
             throw new Error("Friend username could not be found");
         }
 
-        const userFromUserId = await userDao.getUserByUserId(userId);
-        if (!userFromUserId) {
+        const user = await userDao.getUserByUserId(userId);
+        if (!user) {
             throw new Error("User could not be found");
         }
 
-        for (let friend of userFromUserId.friends) {
-            if (friend.userId === userFromUsername.userId) {
+        for (let currentFriend of user.friends) {
+            if (currentFriend.userId === friend.userId) {
                 throw new Error("User already friends");
             }
         }
 
-        let newFriendsList = [
-            ...userFromUserId.friends, 
+        let userNewFriendsList = [
+            ...user.friends, 
             {
-                userId:userFromUsername.userId, 
-                username:userFromUsername.username
+                userId:friend.userId, 
+                username:friend.username
+            }
+        ]
+
+        let friendNewFriendsList = [
+            ...friend.friends,
+            {
+                userId: user.userId,
+                username: user.username
             }
         ]
         
-        await userDao.addFriend(newFriendsList, userId);
+        await userDao.addFriend(userNewFriendsList, userId);
+        await userDao.addFriend(friendNewFriendsList, friend.userId);
         logger.info(`Friend successfully added: ${friendUsername} to ${userId}`);
     } catch (error) {
         throw error;
