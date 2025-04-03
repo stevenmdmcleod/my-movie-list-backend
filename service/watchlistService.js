@@ -144,13 +144,7 @@ async function getWatchlist(user, listId){
     }
     
 }
-// Check if userId is on friends list
 
-// Check if userId is owner of watchlist
-
-// Save userId to collaborators attribute on watchlist.
-
-// Save listId on the user
 async function addCollaborators(userId, listId, collaboratorId) {
     try {
         const watchlist = await watchlistDao.getWatchlistByListId(listId);
@@ -198,14 +192,59 @@ async function addCollaborators(userId, listId, collaboratorId) {
             ...watchlist.collaborators,
             collaborator.userId
         ]
-        console.log('here')
         await watchlistDao.updateWatchlist(watchlist.listId, {collaborators: newWatchlistCollaborators});
         await userDao.updateUser(collaborator.userId, {collaborativeLists: newCollaboratorCollaborativeLists});
-        console.log('there')
         logger.info(`Watchlist and User collaborators successfully updated: ${watchlist.listId} AND ${collaborator.userId}`);
     } catch (error) {
         throw error
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, addCollaborators}
+async function commentOnWatchList(data) {
+
+    try {
+        const { userId, username, listId, comment } = data;
+
+        if (!comment?.trim()) {
+            throw new Error("Comment cannot be empty.");
+        }
+
+        const existingWatchList = await watchlistDao.getWatchlistByListId(listId);
+
+        if (!existingWatchList) {
+            throw new Error("WatchList not found");
+        }
+
+        //if private list, only collaborators or owner can comment
+        if(!existingWatchList.isPublic){
+            if (!(existingWatchList.collaborators.includes(userId) || existingWatchList.userId === userId)) {
+                throw new Error("Unauthorized: You cannot comment on this watchlist.");
+            }
+        }
+        
+        const newComment = {
+            commentId: uuid.v4(),
+            userId,
+            comment,
+            datePosted: new Date().toISOString(),
+            username
+        };
+
+        //Ensure comments is an array before pushing
+        let comments = Array.isArray(existingWatchList.comments) ? existingWatchList.comments : [];
+
+        comments.push(newComment); 
+
+        const updatedList = await watchlistDao.updateWatchlist(listId, {comments});
+
+        return {
+            message: "Comment added successfully",
+            comment: newComment
+        };
+    } catch (error) {
+        logger.error(`Error in updateWatchList service: ${error.stack}`);
+        throw error;
+    }
+}
+
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators}

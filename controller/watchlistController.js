@@ -39,19 +39,6 @@ router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
     }
 })
 
-// PATCH to /watchlist/:listId/collaborators - JWT required, owner userId from JWT
-
-// body:  { collaborator: userId of new collaborator }
-
-// Check if userId is on friends list
-
-// Check if userId is owner of watchlist
-
-// Save userId to collaborators attribute on watchlist.
-
-// Save listId on the user
-
-// Return successful message
 router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
     try {
         await watchlistService.addCollaborators(req.user.userId, req.params.listId, req.body.collaborator);
