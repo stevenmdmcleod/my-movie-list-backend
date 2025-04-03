@@ -145,6 +145,64 @@ async function getWatchlist(user, listId){
     
 }
 
+async function addCollaborators(userId, listId, collaboratorId) {
+    try {
+        const watchlist = await watchlistDao.getWatchlistByListId(listId);
+
+        if (!watchlist) {
+            throw new Error("Watchlist doesn't exist!");
+        }
+
+        const user = await userDao.getUserByUserId(userId);
+
+        if (!user) {
+            throw new Error("User could not be found");
+        }
+
+        const collaborator = await userDao.getUserByUserId(collaboratorId);
+        
+        if (!collaborator) {
+            throw new Error("User could not be found from collaborator ID")
+        }
+
+        if (watchlist.userId !== user.userId) {
+            throw new Error("User must be owner of the watchlist to add a collaborator");
+        }
+
+        if (watchlist.userId === collaborator.userId) {
+            throw new Error("Watchlist creator is already an implied collaborator, cannot add to list");
+        }
+
+        const userFriendsListIds = user.friends.map(friend => friend.userId)
+
+        if (!userFriendsListIds.includes(collaborator.userId)) {
+            throw new Error("User must be a friend to become a collaborator");
+        }
+
+        if (watchlist.collaborators.includes(collaborator.userId)) {
+            throw new Error("User is already a collaborator");
+        }
+
+        const newCollaboratorCollaborativeLists = [
+            ...collaborator.collaborativeLists,
+            watchlist.listId
+        ]
+
+        const newWatchlistCollaborators = [
+            ...watchlist.collaborators,
+            collaborator.userId
+        ]
+
+        await watchlistDao.updateWatchlist(watchlist.listId, {collaborators: newWatchlistCollaborators});
+        await userDao.updateUser(collaborator.userId, {collaborativeLists: newCollaboratorCollaborativeLists});
+
+        logger.info(`Watchlist and User collaborators successfully updated: ${watchlist.listId} AND ${collaborator.userId}`);
+    } catch (error) {
+        throw error
+    }
+}
+
+
 async function commentOnWatchList(data) {
 
     try {
@@ -227,4 +285,4 @@ async function deleteCommentOnWatchList(listId, commentId) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, deleteCommentOnWatchList}
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, deleteCommentOnWatchList}
