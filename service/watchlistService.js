@@ -145,4 +145,51 @@ async function getWatchlist(user, listId){
     
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist}
+async function commentOnWatchList(data) {
+
+    try {
+        const { userId, username, listId, comment } = data;
+
+        if (!comment?.trim()) {
+            throw new Error("Comment cannot be empty.");
+        }
+
+        const existingWatchList = await watchlistDao.getWatchlistByListId(listId);
+
+        if (!existingWatchList) {
+            throw new Error("WatchList not found");
+        }
+
+        //if private list, only collaborators or owner can comment
+        if(!existingWatchList.isPublic){
+            if (!(existingWatchList.collaborators.includes(userId) || existingWatchList.userId === userId)) {
+                throw new Error("Unauthorized: You cannot comment on this watchlist.");
+            }
+        }
+        
+        const newComment = {
+            commentId: uuid.v4(),
+            userId,
+            comment,
+            datePosted: new Date().toISOString(),
+            username
+        };
+
+        //Ensure comments is an array before pushing
+        let comments = Array.isArray(existingWatchList.comments) ? existingWatchList.comments : [];
+
+        comments.push(newComment); 
+
+        const updatedList = await watchlistDao.updateWatchlist(listId, {comments});
+
+        return {
+            message: "Comment added successfully",
+            comment: newComment
+        };
+    } catch (error) {
+        logger.error(`Error in updateWatchList service: ${error.stack}`);
+        throw error;
+    }
+}
+
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList}
