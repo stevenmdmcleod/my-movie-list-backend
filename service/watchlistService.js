@@ -145,4 +145,45 @@ async function getWatchlist(user, listId){
     
 }
 
+
+async function removeCollaborator(user, listId, userId){
+    if(!user || !listId || !userId){
+        throw new Error("Bad Data");
+    }
+    
+    try {
+        
+
+    const userToRemove = await userDao.getUserByUserId(userId);
+    const watchlist = await watchlistDao.getWatchlistByListId(listId);
+
+    if(!userToRemove){
+        throw new Error("User not found");
+    }
+    if(!watchlist){
+        throw new Error("Watchlist not found");
+    }
+    if(!(watchlist.collaborators.indexOf(userId) >= 0)){
+        return null;
+    }
+
+    //check if user removing is themselves or if user is owner of watchlist
+    if((user.userId == userId) || (user.userId == watchlist.userId)){
+
+        //user's list of collaborative lists
+        newUserCollaborativeLists = userToRemove.collaborativeLists.filter(obj => obj != listId);
+
+        //watchlist's collaborators
+        newWatchlistCollaborators = watchlist.collaborators.filter(obj => obj != userToRemove.userId);
+        
+    }
+
+
+    } catch (error) {
+        logger.error(`Error in removeCollaborator: ${error.stack}`)
+        throw error;
+    }
+    
+}
+
 module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist}
