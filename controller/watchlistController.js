@@ -50,6 +50,18 @@ router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborato
     }
 })
 
+
+router.delete("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
+    try {
+        await watchlistService.removeCollaborator(req.user, req.params.listId, req.body.collaborator);
+        res.status(200).json("Collaborator successfully removed")
+    } catch (error) {
+        logger.error(`Error removing collaborator: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
+
 function validateAddCollaborator(req, res, next) {
     if (!req.user.userId) {
         return res.status(400).json("Missing required JWT information")

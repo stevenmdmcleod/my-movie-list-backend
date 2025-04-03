@@ -164,7 +164,7 @@ async function removeCollaborator(user, listId, userId){
         throw new Error("Watchlist not found");
     }
     if(!(watchlist.collaborators.indexOf(userId) >= 0)){
-        return null;
+        throw new Error("User is not a collaborator of this watchlist!");
     }
 
     //check if user removing is themselves or if user is owner of watchlist
@@ -176,11 +176,17 @@ async function removeCollaborator(user, listId, userId){
         //watchlist's collaborators
         newWatchlistCollaborators = watchlist.collaborators.filter(obj => obj != userToRemove.userId);
         
+        await userDao.updateUser(userId, {collaborativeLists: newUserCollaborativeLists});
+        await watchlistDao.updateWatchlist(listId, {collaborators: newWatchlistCollaborators});
+        logger.info(`Watchlist ${listId} and User successfully updated to remove collaborator: ${userId}`);
+    }
+    else{
+        throw new Error("You do not have permission to remove this User from the watchlist");
     }
 
 
     } catch (error) {
-        logger.error(`Error in removeCollaborator: ${error.stack}`)
+        logger.error(`Error in removeCollaborator: ${error}`)
         throw error;
     }
     
@@ -291,4 +297,4 @@ async function commentOnWatchList(data) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators}
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, removeCollaborator}
