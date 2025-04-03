@@ -142,4 +142,24 @@ router.get("/:listId", authenticateToken, async (req, res) => {
     }
 });
 
+//delete a comment
+router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) => {
+    try {
+        if (req.user.isAdmin == false) {
+            logger.error(`Error: non-admin attempting access to admin route`);
+            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+        }
+
+        const { listId } = req.params;
+        const { commentId } = req.params;
+
+        const data = await watchlistService.deleteCommentOnWatchList(listId, commentId);
+
+        res.status(200).json(data);
+    } catch (err) {
+        logger.error(`Error updating  watchlist: ${err.message}`);
+        res.status(403).json(err.message);
+    }
+});
+
 module.exports = router;
