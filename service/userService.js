@@ -131,7 +131,7 @@ async function addFriend(friendUsername, userId) {
                 userId:friend.userId, 
                 username:friend.username
             }
-        ]
+        ];
 
         let friendNewFriendsList = [
             ...friend.friends,
@@ -139,7 +139,7 @@ async function addFriend(friendUsername, userId) {
                 userId: user.userId,
                 username: user.username
             }
-        ]
+        ];
         
         await userDao.addFriend(userNewFriendsList, userId);
         await userDao.addFriend(friendNewFriendsList, friend.userId);
