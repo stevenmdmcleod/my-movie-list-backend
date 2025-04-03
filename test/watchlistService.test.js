@@ -169,3 +169,54 @@ describe("commentOnWatchList", () => {
             .rejects.toThrow("Comment cannot be empty.");
     });
 });
+
+describe("deleteCommentOnWatchList", () => {
+    const listId = "list-123";
+    const commentId = "comment-456";
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test("should delete a comment successfully", async () => {
+        const existingWatchList = {
+            listId,
+            comments: [
+                { commentId: "comment-123", comment: "First comment" },
+                { commentId, comment: "Second comment" }
+            ]
+        };
+
+        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
+        watchlistDao.updateWatchlist.mockResolvedValue({
+            ...existingWatchList,
+            comments: [{ commentId: "comment-123", comment: "First comment" }]
+        });
+
+        const result = await watchlistService.deleteCommentOnWatchList(listId, commentId);
+
+        expect(result.message).toBe("Comment deleted successfully");
+        expect(result.watchlist.comments.length).toBe(1);
+    });
+
+    test("should throw an error if Comment is not found", async () => {
+        const existingWatchList = {
+            listId,
+            comments: []
+        };
+
+        watchlistDao.getWatchlistByListId.mockResolvedValue(existingWatchList);
+
+        await expect(watchlistService.deleteCommentOnWatchList(listId, commentId))
+            .rejects.toThrow("Comment not found");
+        
+    });
+
+    test("should throw an error if watchlist is not found", async () => {
+        watchlistDao.getWatchlistByListId.mockResolvedValue(null);
+
+        await expect(watchlistService.deleteCommentOnWatchList(listId, commentId))
+            .rejects.toThrow("WatchList not found");
+    });
+
+});

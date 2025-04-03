@@ -192,4 +192,39 @@ async function commentOnWatchList(data) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList}
+async function deleteCommentOnWatchList(listId, commentId) {
+
+    try {
+
+        const existingWatchList = await watchlistDao.getWatchlistByListId(listId);
+
+        if (!existingWatchList) {
+            throw new Error("WatchList not found");
+        }
+
+        //ensure comments is an array(not empty object)
+        if (!Array.isArray(existingWatchList.comments)) {
+            existingWatchList.comments = []; 
+        }
+
+        const commentExists = existingWatchList.comments.some(comment => comment.commentId === commentId);
+        if (!commentExists) {
+            throw new Error("Comment not found");
+        }
+
+        //remove comment from commentList
+        const updatedComments = existingWatchList.comments.filter(comment => comment.commentId !== commentId);
+
+        const updatedList = await watchlistDao.updateWatchlist(listId, {comments: updatedComments});
+
+        return {
+            message: "Comment deleted successfully",
+            watchlist: updatedList
+        };
+    } catch (error) {
+        logger.error(`Error in deletComentOnWatchList service: ${error.stack}`);
+        throw error;
+    }
+}
+
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, deleteCommentOnWatchList}
