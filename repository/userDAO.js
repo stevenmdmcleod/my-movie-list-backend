@@ -287,6 +287,37 @@ async function updateLikedLists(userId, newLikedLists) {
     }
 }
 
+async function updateUser(userId, updates) {
+    try {
+        if (!updates || Object.keys(updates).length === 0) {
+            throw new Error("No fields provided to update.");
+        }
+
+        let updateExpressions = [];
+        let expressionAttributeValues = {};
+
+        // Construct UpdateExpression dynamically
+        for (const [key, value] of Object.entries(updates)) {
+            updateExpressions.push(`${key} = :${key}`);
+            expressionAttributeValues[`:${key}`] = value;
+        }
+
+        const command = new UpdateCommand({
+            TableName,
+            Key: { userId },
+            UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+            ExpressionAttributeValues: expressionAttributeValues,
+            ReturnValues: "ALL_NEW"
+        });
+
+        const result = await dbClient.send(command);
+        return result.Attributes;
+    } catch (error) {
+        logger.error("Error updating user:", error);
+        throw new Error("Failed to update user.");
+    }
+}
+
 module.exports = {
     createUser, 
     getUserByUsername, 
@@ -301,5 +332,6 @@ module.exports = {
     deleteS3File,
     uploadFileToS3,
     banUser,
-    updateLikedLists
+    updateLikedLists,
+    updateUser
 }
