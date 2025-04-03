@@ -145,6 +145,53 @@ async function getWatchlist(user, listId){
     
 }
 
+
+async function removeCollaborator(user, listId, userId){
+    if(!user || !listId || !userId){
+        throw new Error("Bad Data");
+    }
+    
+    try {
+        
+
+    const userToRemove = await userDao.getUserByUserId(userId);
+    const watchlist = await watchlistDao.getWatchlistByListId(listId);
+
+    if(!userToRemove){
+        throw new Error("User not found");
+    }
+    if(!watchlist){
+        throw new Error("Watchlist not found");
+    }
+    if(!(watchlist.collaborators.indexOf(userId) >= 0)){
+        throw new Error("User is not a collaborator of this watchlist!");
+    }
+
+    //check if user removing is themselves or if user is owner of watchlist
+    if((user.userId == userId) || (user.userId == watchlist.userId)){
+
+        //user's list of collaborative lists
+        newUserCollaborativeLists = userToRemove.collaborativeLists.filter(obj => obj != listId);
+
+        //watchlist's collaborators
+        newWatchlistCollaborators = watchlist.collaborators.filter(obj => obj != userToRemove.userId);
+        
+        await userDao.updateUser(userId, {collaborativeLists: newUserCollaborativeLists});
+        await watchlistDao.updateWatchlist(listId, {collaborators: newWatchlistCollaborators});
+        logger.info(`Watchlist ${listId} and User successfully updated to remove collaborator: ${userId}`);
+    }
+    else{
+        throw new Error("You do not have permission to remove this User from the watchlist");
+    }
+
+
+    } catch (error) {
+        logger.error(`Error in removeCollaborator: ${error}`)
+        throw error;
+    }
+    
+}
+
 async function addCollaborators(userId, listId, collaboratorId) {
     try {
         const watchlist = await watchlistDao.getWatchlistByListId(listId);
@@ -285,4 +332,4 @@ async function deleteCommentOnWatchList(listId, commentId) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, deleteCommentOnWatchList}
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator}
