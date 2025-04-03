@@ -39,6 +39,28 @@ router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
     }
 })
 
+
+router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
+    try {
+        await watchlistService.addCollaborators(req.user.userId, req.params.listId, req.body.collaborator);
+        res.status(200).json("Collaborator successfully added")
+    } catch (error) {
+        logger.error(`Error adding collaborators: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
+function validateAddCollaborator(req, res, next) {
+    if (!req.user.userId) {
+        return res.status(400).json("Missing required JWT information")
+    }
+
+    if (!req.body.collaborator || req.body.collaborator.length == 0) {
+        return res.status(400).json("Missing collaborator attribute in request body")
+    }
+    next();
+}
+
 //update list name and isPublic
 router.put("/:listId", authenticateToken, async (req, res) => {
     try {
