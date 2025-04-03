@@ -39,6 +39,28 @@ router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
     }
 })
 
+
+router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
+    try {
+        await watchlistService.addCollaborators(req.user.userId, req.params.listId, req.body.collaborator);
+        res.status(200).json("Collaborator successfully added")
+    } catch (error) {
+        logger.error(`Error adding collaborators: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
+function validateAddCollaborator(req, res, next) {
+    if (!req.user.userId) {
+        return res.status(400).json("Missing required JWT information")
+    }
+
+    if (!req.body.collaborator || req.body.collaborator.length == 0) {
+        return res.status(400).json("Missing collaborator attribute in request body")
+    }
+    next();
+}
+
 //update list name and isPublic
 router.put("/:listId", authenticateToken, async (req, res) => {
     try {
@@ -71,6 +93,22 @@ router.put("/:listId", authenticateToken, async (req, res) => {
     }
 });
 
+//comment on a watchlist
+router.put("/:listId/comments", authenticateToken, async (req, res) => {
+    try {
+        const { listId } = req.params;
+        const { comment } = req.body;
+        const userId = req.user.userId;
+        const username = req.user.username;
+
+        const data = await watchlistService.commentOnWatchList({userId, username, listId, comment} );
+
+        res.status(200).json(data);
+    } catch (err) {
+        logger.error(`Error updating  watchlist: ${err.message}`);
+        res.status(403).json(err.message);
+    }
+});
 
 router.get("/:listId", authenticateToken, async (req, res) => {
     if(!req.user || !req.params.listId){
