@@ -18,7 +18,7 @@ router.post("/", authenticateToken, async (req, res) => {
     }
     try {
         const result = await watchlistService.createWatchlist(req.user.userId, data.listName);
-        res.status(201).json("watchlist creation successful.");
+        res.status(201).json({message: "watchlist creation successful.", watchlist: result});
     } catch (err) {
         logger.error(`Error creating watchlist: ${err.message}`);
         res.status(400).json(err.message);
@@ -71,6 +71,22 @@ router.put("/:listId", authenticateToken, async (req, res) => {
     }
 });
 
+//comment on a watchlist
+router.put("/:listId/comments", authenticateToken, async (req, res) => {
+    try {
+        const { listId } = req.params;
+        const { comment } = req.body;
+        const userId = req.user.userId;
+        const username = req.user.username;
+
+        const data = await watchlistService.commentOnWatchList({userId, username}, { listId, comment });
+
+        res.status(200).json(data);
+    } catch (err) {
+        logger.error(`Error updating  watchlist: ${err.message}`);
+        res.status(403).json(err.message);
+    }
+});
 
 router.get("/:listId", authenticateToken, async (req, res) => {
     if(!req.user || !req.params.listId){
