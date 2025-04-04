@@ -146,6 +146,69 @@ async function getWatchlist(user, listId){
 }
 
 
+async function getUserWatchlists(userId){
+    try {
+
+        
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const lists = await watchlistDao.getWatchlistsByUserId(userId);
+
+        
+        if(!lists){
+            throw new Error("No lists found");
+        }
+        else{
+            return lists;
+        }
+
+    } catch (error) {
+        logger.error(`Error in getUserWatchlists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
+async function getCollaborativeLists(userId){
+    try {
+
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const user = await userDao.getUserByUserId(userId);
+        
+        const collabLists = user.collaborativeLists;
+        
+        let foundCollabLists = []
+
+        for(let i = 0; i < collabLists.length; i++){
+
+            currListId = collabLists[i];
+            currList = await watchlistDao.getWatchlistByListId(currListId);
+
+            if(!currList){
+                logger.error(`list ${currListId} not found`);
+            }
+            else{
+                foundCollabLists.push(currList);
+            }
+
+        }
+        return foundCollabLists;
+
+
+    } catch (error) {
+        logger.error(`Error in getCollaborativeLists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
 async function removeCollaborator(user, listId, userId){
     if(!user || !listId || !userId){
         throw new Error("Bad Data");
@@ -381,14 +444,5 @@ async function addOrRemoveTitle(userId, listId, titleId) {
     }
 }
 
-module.exports = {
-    createWatchlist, 
-    updateWatchlist, 
-    getWatchlist, 
-    likeWatchlist, 
-    commentOnWatchList, 
-    addCollaborators, 
-    deleteCommentOnWatchList, 
-    removeCollaborator, 
-    addOrRemoveTitle
-}
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
+     commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, getCollaborativeLists, getUserWatchlists, addOrRemoveTitle}
