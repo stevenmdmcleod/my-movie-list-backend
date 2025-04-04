@@ -146,6 +146,71 @@ async function getWatchlist(user, listId){
 }
 
 
+async function getUserWatchlists(userId){
+    try {
+
+        console.log(userId);
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const lists = await watchlistDao.getWatchlistsByUserId(userId);
+
+        console.log(lists);
+        if(!lists){
+            throw new Error("No lists found");
+        }
+        else{
+            return lists;
+        }
+
+    } catch (error) {
+        logger.error(`Error in getUserWatchlists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
+async function getCollaborativeLists(userId){
+    try {
+
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const user = await userDao.getUserByUserId(userId);
+        
+        console.log(user);
+        const collabLists = user.collaborativeLists;
+        console.log(collabLists);
+
+        let foundCollabLists = []
+
+        for(let i = 0; i < collabLists.length; i++){
+
+            currListId = collabLists[i];
+            currList = watchlistDao.getWatchlistByListId(currListId);
+
+            if(!currList){
+                logger.error(`list ${currListId} not found`);
+            }
+            else{
+                foundCollabLists.push(currList);
+            }
+        }
+
+        return foundCollabLists;
+
+
+    } catch (error) {
+        logger.error(`Error in getCollaborativeLists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
 async function removeCollaborator(user, listId, userId){
     if(!user || !listId || !userId){
         throw new Error("Bad Data");
@@ -332,4 +397,5 @@ async function deleteCommentOnWatchList(listId, commentId) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator}
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
+     commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, getCollaborativeLists, getUserWatchlists}
