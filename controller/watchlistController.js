@@ -194,4 +194,14 @@ router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) =
     }
 });
 
+router.patch("/:listId/titles", authenticateToken, async (req, res) => {
+    try {        
+        const result = await watchlistService.addOrRemoveTitle(req.user.userId, req.params.listId, req.body.titleId);
+        res.status(200).json(`Title has been successfully ${result}`)
+    } catch (error) {
+        logger.error(`Error adding/removing title: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
+
 module.exports = router;
