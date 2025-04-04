@@ -149,14 +149,14 @@ async function getWatchlist(user, listId){
 async function getUserWatchlists(userId){
     try {
 
-        console.log(userId);
+        
         if(!userId){
             throw new Error("bad data");
         }
     
         const lists = await watchlistDao.getWatchlistsByUserId(userId);
 
-        console.log(lists);
+        
         if(!lists){
             throw new Error("No lists found");
         }
@@ -181,16 +181,14 @@ async function getCollaborativeLists(userId){
     
         const user = await userDao.getUserByUserId(userId);
         
-        console.log(user);
         const collabLists = user.collaborativeLists;
-        console.log(collabLists);
-
+        
         let foundCollabLists = []
 
         for(let i = 0; i < collabLists.length; i++){
 
             currListId = collabLists[i];
-            currList = watchlistDao.getWatchlistByListId(currListId);
+            currList = await watchlistDao.getWatchlistByListId(currListId);
 
             if(!currList){
                 logger.error(`list ${currListId} not found`);
@@ -198,8 +196,8 @@ async function getCollaborativeLists(userId){
             else{
                 foundCollabLists.push(currList);
             }
-        }
 
+        }
         return foundCollabLists;
 
 

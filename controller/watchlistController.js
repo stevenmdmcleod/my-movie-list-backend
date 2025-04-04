@@ -47,7 +47,7 @@ router.get("/my-watchlists", authenticateToken, async (req, res) => {
 
     try {
         list = await watchlistService.getUserWatchlists(req.user.userId);
-        return res.status(200).json({message: "Successfully retrieved list of watchlists!", watchlist: list});
+        return res.status(200).json({message: "Successfully retrieved list of watchlists!", watchlists: list});
     } catch (error) {
         logger.error(`Error retrieving watchlists: ${error.message}`);
         return res.status(500).json(error.message);
@@ -64,7 +64,7 @@ router.get("/collaborative-lists", authenticateToken, async (req, res) => {
         return res.status(200).json({message: "Successfully retrieved list of collaborative watchlists!", watchlist: list});
     } catch (error) {
         logger.error(`Error retrieving collaborative lists: ${error.message}`);
-        return res.status(500).json(error.message);
+        return res.status(400).json(error.message);
     }
 })
 

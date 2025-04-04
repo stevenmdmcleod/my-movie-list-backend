@@ -65,7 +65,7 @@ async function getWatchlistsByUserId(userId) {
         if (Items.length == 0) {
             return null;
         }
-        logger.info(`Query command to database complete ${JSON.stringify({userId: userId, listName: listName})}`);
+        logger.info(`Query command to database complete ${JSON.stringify({userId: userId})}`);
         return Items;  // Return list
     } catch (err) {
         logger.error("Error querying by userId:", err);
