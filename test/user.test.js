@@ -165,3 +165,79 @@ describe("updateUserProfile", () => {
         expect(dao.uploadFileToS3).toHaveBeenCalled();
     });
 });
+
+describe("Change password", () => {
+    const mockUser = { userId: '123', username: 'testUser'};
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it('Throws if user is not found', async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(
+            userService.changePassword({ password: 'abc12345'}, mockUser)
+        ).rejects.toThrow('User could not be found');
+    });
+
+    it("Throws if password is too short", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUser);
+
+        await expect(
+            userService.changePassword({ password: 'short'}, mockUser)
+        ).rejects.toThrow('Password must be longer than 7 characters');
+    });
+
+    it("Hashes password and calls DAO", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUser);
+
+        bcrypt.hash.mockResolvedValue('hashed-pass');
+        dao.changePassword.mockResolvedValue();
+
+        await userService.changePassword({ password: 'abc12345'}, mockUser);
+
+        expect(bcrypt.hash).toHaveBeenCalledWith('abc12345', 10);
+        expect(dao.changePassword).toHaveBeenCalledWith(mockUser.userId, 'hashed-pass');
+    });
+});
+
+describe("Delete User", () => {
+    const mockUserId = '123';
+    const mockToken = { userId: mockUserId};
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).rejects.toThrow('User could not be found');
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue({ userId: mockUserId });
+        dao.deleteUser.mockRejectedValue(new Error ("DAO: failed to delete user"))
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).rejects.toThrow('DAO: failed to delete user');
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("Deletes a user successfully", async () => {
+        dao.getUserByUserId.mockResolvedValue({ userId: mockUserId });
+        dao.deleteUser.mockResolvedValue({});
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).toHaveBeenCalledWith(mockUserId);
+    });
+});
