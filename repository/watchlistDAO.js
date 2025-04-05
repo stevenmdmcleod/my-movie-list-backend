@@ -47,6 +47,33 @@ async function getWatchlistByUserIdAndListName(userId, listName) {
     }
 }
 
+//returns list of watchlists based on userId index
+async function getWatchlistsByUserId(userId) {
+    const command = new QueryCommand({
+        TableName,
+        IndexName: "userId-index",  
+        KeyConditionExpression: "userId = :userId",
+        ExpressionAttributeValues: {
+            ":userId": userId
+
+        }
+    });
+
+    try {
+        const {Items} = await dbClient.send(command);
+        console.log(Items);
+        if (Items.length == 0) {
+            return null;
+        }
+        logger.info(`Query command to database complete ${JSON.stringify({userId: userId})}`);
+        return Items;  // Return list
+    } catch (err) {
+        logger.error("Error querying by userId:", err);
+        throw new Error("DAO: Query command failed for watchlist");
+    }
+}
+
+
 async function getWatchlistByListId(listId) {
     try {
         const command = new GetCommand({
@@ -94,4 +121,4 @@ async function updateWatchlist(listId, updates) {
     }
 }
 
-module.exports = {createWatchlist, getWatchlistByUserIdAndListName, getWatchlistByListId, updateWatchlist}
+module.exports = {createWatchlist, getWatchlistByUserIdAndListName, getWatchlistByListId, updateWatchlist, getWatchlistsByUserId}

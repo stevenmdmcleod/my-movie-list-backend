@@ -2,10 +2,12 @@ const watchlistService = require("../service/watchlistService");
 const watchlistDao = require("../repository/watchlistDAO");
 const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
+const userDao = require('../repository/userDAO'); 
 
 jest.mock("../repository/watchlistDAO");
 jest.mock("../repository/userDAO");
 jest.mock('uuid');
+jest.mock('../repository/userDAO');
 
 describe("updateWatchlist", () => {
 
@@ -376,3 +378,101 @@ describe("Add Collaborator", () => {
         expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
     })
 })
+describe("addOrRemoveTitle", () => {
+    const userId = "user-123";
+    const listId = "list-456";
+    const titleId = "title-789";
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test("should add a title successfully if user is the owner", async () => {
+        const watchlist = {
+            listId,
+            userId,
+            collaborators: [],
+            titles: []
+        };
+        const user = { userId, recentlyAdded: [] };
+
+        watchlistDao.getWatchlistByListId.mockResolvedValue(watchlist);
+        userDao.getUserByUserId.mockResolvedValue(user);
+        watchlistDao.updateWatchlist.mockResolvedValue();    
+        userDao.updateUser.mockResolvedValue();
+
+        const result = await watchlistService.addOrRemoveTitle(userId, listId, titleId);
+
+        expect(result).toBe("added");
+        expect(watchlistDao.updateWatchlist).toHaveBeenCalledWith(listId, { titles: [titleId] });
+        expect(userDao.updateUser).toHaveBeenCalledWith(userId, { recentlyAdded: [titleId] });
+    });
+
+    test("should add a title successfully if user is a collaborator", async () => {
+        const anotherUserId = "user-456";
+        const watchlist = {
+            listId,
+            userId,
+            collaborators: [anotherUserId],
+            titles: []
+        };
+        const user = { userId: anotherUserId, recentlyAdded: [] };
+
+        watchlistDao.getWatchlistByListId.mockResolvedValue(watchlist);
+        userDao.getUserByUserId.mockResolvedValue(user);
+        watchlistDao.updateWatchlist.mockResolvedValue();    
+        userDao.updateUser.mockResolvedValue();
+
+        const result = await watchlistService.addOrRemoveTitle(anotherUserId, listId, titleId);
+
+        expect(result).toBe("added");
+        expect(userDao.updateUser).toHaveBeenCalled();
+    });
+
+    test("should remove a title successfully", async () => {
+        const watchlist = {
+            listId,
+            userId,
+            collaborators: [],
+            titles: [titleId]
+        };
+        const user = { userId, recentlyAdded: [titleId] };
+
+        watchlistDao.getWatchlistByListId.mockResolvedValue(watchlist);
+        userDao.getUserByUserId.mockResolvedValue(user);
+        watchlistDao.updateWatchlist.mockResolvedValue();
+        userDao.updateUser.mockResolvedValue();
+
+        const result = await watchlistService.addOrRemoveTitle(userId, listId, titleId);
+
+        expect(result).toBe("removed");
+        expect(userDao.updateUser).not.toHaveBeenCalled(); // No need to update user
+    });
+
+    test("should throw an error if TitleId is empty", async () => {
+        await expect(watchlistService.addOrRemoveTitle(userId, listId, ""))
+            .rejects.toThrow("TitleId, UserId and ListId must be provided.");
+    });
+
+    test("should throw an error if Watchlist does not exist", async () => {
+        watchlistDao.getWatchlistByListId.mockResolvedValue(null);
+        await expect(watchlistService.addOrRemoveTitle(userId, listId, titleId))
+            .rejects.toThrow("Watchlist doesn't exist!");
+    });
+
+    test("should throw an error if User does not exist", async () => {
+        watchlistDao.getWatchlistByListId.mockResolvedValue({ listId, userId, titles: [] });
+        userDao.getUserByUserId.mockResolvedValue(null);
+        await expect(watchlistService.addOrRemoveTitle(userId, listId, titleId))
+            .rejects.toThrow("User could not be found");
+    });
+
+    test("should throw an error if user is unauthorized", async () => {
+        watchlistDao.getWatchlistByListId.mockResolvedValue({ listId, userId: "other-user", collaborators: [], titles: [] });
+        userDao.getUserByUserId.mockResolvedValue({ userId });
+
+        await expect(watchlistService.addOrRemoveTitle(userId, listId, titleId))
+            .rejects.toThrow("User must be owner or collaborator on the watchlist to add a title");
+    });
+
+});

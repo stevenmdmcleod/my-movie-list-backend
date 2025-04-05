@@ -40,6 +40,35 @@ router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
 })
 
 
+router.get("/my-watchlists", authenticateToken, async (req, res) => {
+    if (!req.user.userId) {
+        return res.status(400).json("Missing required JWT information")
+    }
+
+    try {
+        list = await watchlistService.getUserWatchlists(req.user.userId);
+        return res.status(200).json({message: "Successfully retrieved list of watchlists!", watchlists: list});
+    } catch (error) {
+        logger.error(`Error retrieving watchlists: ${error.message}`);
+        return res.status(500).json(error.message);
+    }
+})
+
+router.get("/collaborative-lists", authenticateToken, async (req, res) => {
+    if (!req.user.userId) {
+        return res.status(400).json("Missing required JWT information")
+    }
+
+    try {
+        list = await watchlistService.getCollaborativeLists(req.user.userId);
+        return res.status(200).json({message: "Successfully retrieved list of collaborative watchlists!", watchlist: list});
+    } catch (error) {
+        logger.error(`Error retrieving collaborative lists: ${error.message}`);
+        return res.status(400).json(error.message);
+    }
+})
+
+
 router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
     try {
         await watchlistService.addCollaborators(req.user.userId, req.params.listId, req.body.collaborator);
@@ -49,6 +78,9 @@ router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborato
         res.status(400).json(error.message);
     }
 })
+
+
+
 
 
 router.delete("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
@@ -161,5 +193,15 @@ router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) =
         res.status(403).json(err.message);
     }
 });
+
+router.patch("/:listId/titles", authenticateToken, async (req, res) => {
+    try {        
+        const result = await watchlistService.addOrRemoveTitle(req.user.userId, req.params.listId, req.body.titleId);
+        res.status(200).json(`Title has been successfully ${result}`)
+    } catch (error) {
+        logger.error(`Error adding/removing title: ${error.message}`);
+        res.status(400).json(error.message);
+    }
+})
 
 module.exports = router;

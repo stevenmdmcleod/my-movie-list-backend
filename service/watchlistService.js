@@ -146,6 +146,69 @@ async function getWatchlist(user, listId){
 }
 
 
+async function getUserWatchlists(userId){
+    try {
+
+        
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const lists = await watchlistDao.getWatchlistsByUserId(userId);
+
+        
+        if(!lists){
+            throw new Error("No lists found");
+        }
+        else{
+            return lists;
+        }
+
+    } catch (error) {
+        logger.error(`Error in getUserWatchlists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
+async function getCollaborativeLists(userId){
+    try {
+
+        if(!userId){
+            throw new Error("bad data");
+        }
+    
+        const user = await userDao.getUserByUserId(userId);
+        
+        const collabLists = user.collaborativeLists;
+        
+        let foundCollabLists = []
+
+        for(let i = 0; i < collabLists.length; i++){
+
+            currListId = collabLists[i];
+            currList = await watchlistDao.getWatchlistByListId(currListId);
+
+            if(!currList){
+                logger.error(`list ${currListId} not found`);
+            }
+            else{
+                foundCollabLists.push(currList);
+            }
+
+        }
+        return foundCollabLists;
+
+
+    } catch (error) {
+        logger.error(`Error in getCollaborativeLists service: ${error.stack}`);
+        throw error;
+    }
+    
+}
+
+
 async function removeCollaborator(user, listId, userId){
     if(!user || !listId || !userId){
         throw new Error("Bad Data");
@@ -332,4 +395,54 @@ async function deleteCommentOnWatchList(listId, commentId) {
     }
 }
 
-module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist, commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator}
+async function addOrRemoveTitle(userId, listId, titleId) {
+    try {
+
+        if (!titleId?.trim() || !userId?.trim() || !listId?.trim()) {
+            throw new Error("TitleId, UserId and ListId must be provided.");
+        }
+
+        const watchlist = await watchlistDao.getWatchlistByListId(listId);
+
+        if (!watchlist) {
+            throw new Error("Watchlist doesn't exist!");
+        }
+
+        const user = await userDao.getUserByUserId(userId);
+
+        if (!user) {
+            throw new Error("User could not be found");
+        }
+
+        //only collaborators or owner can add/remove titles
+        if (!(watchlist.collaborators.includes(userId) || watchlist.userId === userId)) {
+            throw new Error("User must be owner or collaborator on the watchlist to add a title");
+        }
+
+        let action;
+        let updatedTitles = Array.isArray(watchlist.titles) ? watchlist.titles : [];
+    
+        if (updatedTitles.includes(titleId)) {
+            updatedTitles = updatedTitles.filter(id => id !== titleId);
+            
+            action = 'removed';
+        } else {
+            updatedTitles.push(titleId);
+            action = 'added';
+            //add to recentlyAdded
+            const newUserRecentlyAdded = Array.isArray(user.recentlyAdded) ? [...user.recentlyAdded, titleId].slice(-10) : [titleId];
+
+            await userDao.updateUser(userId, {recentlyAdded: newUserRecentlyAdded});
+        }
+
+        await watchlistDao.updateWatchlist(listId, {titles: updatedTitles});
+
+        logger.info(`Watchlist successfully updated: ${listId}`);
+        return action;
+    } catch (error) {
+        throw error
+    }
+}
+
+module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
+     commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, getCollaborativeLists, getUserWatchlists, addOrRemoveTitle}
