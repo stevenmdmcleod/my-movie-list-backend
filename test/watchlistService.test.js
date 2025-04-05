@@ -268,3 +268,111 @@ describe("Like Watchlist", () => {
         expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
     })
 })
+
+describe("Add Collaborator", () => {
+    let mockUserId = '123';
+    let mockCollaboratorId = '456';
+    let mockListId = '789';
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if watchlist doesn't exist", async () => {
+        userDao.getUserByUserId.mockResolvedValue(null);
+        watchlistDao.getWatchlistByListId.mockResolvedValue(null);
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("Watchlist doesn't exist!")
+        
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+    
+    // userDao.getUserByUserId.mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[]}).mockResolvedValueOnce({userId: mockCollaboratorId, collaborativeLists:[]})
+    it("Throws if user doesn't exist", async () => {
+        userDao.getUserByUserId.mockResolvedValue(null);
+        watchlistDao.getWatchlistByListId.mockResolvedValue({listId: mockListId, collaborators: []});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("User could not be found")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Throws if user doesn't exist", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[]})
+            .mockResolvedValueOnce(null)
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, collaborators: []});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("User could not be found from collaborator ID")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Throws if watchlist owner isn't making the request", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[]})
+            .mockResolvedValueOnce({userId: mockCollaboratorId, collaborativeLists:[]})
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, userId: '111', collaborators: []});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("User must be owner of the watchlist to add a collaborator")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Throws if watchlist owner tries to add themselves as a collaborator", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[]})
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[]})
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, userId: mockUserId, collaborators: []});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("Watchlist creator is already an implied collaborator, cannot add to list")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Throws if collaborator is not friends with owner", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[], friends:[]})
+            .mockResolvedValueOnce({userId: mockCollaboratorId, collaborativeLists:[], friends:[]})
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, userId: mockUserId, collaborators: []});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("User must be a friend to become a collaborator")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Throws if collaborator is already on list", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[], friends:[{userId:mockCollaboratorId, username: 'testUser2'}]})
+            .mockResolvedValueOnce({userId: mockCollaboratorId, collaborativeLists:[mockListId], friends:[{userId: mockUserId, username: 'testUser1'}]})
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, userId: mockUserId, collaborators: [mockCollaboratorId]});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).rejects.toThrow("User is already a collaborator")
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Adds collaborators successfully", async () => {
+        userDao.getUserByUserId
+            .mockResolvedValueOnce({userId: mockUserId, collaborativeLists:[], friends:[{userId:mockCollaboratorId, username: 'testUser2'}]})
+            .mockResolvedValueOnce({userId: mockCollaboratorId, collaborativeLists:[], friends:[{userId: mockUserId, username: 'testUser1'}]})
+        watchlistDao.getWatchlistByListId
+            .mockResolvedValue({listId: mockListId, userId: mockUserId, collaborators: []});
+        watchlistDao.updateWatchlist.mockResolvedValue({});
+        userDao.updateUser.mockResolvedValue({});
+
+        await expect(watchlistService.addCollaborators(mockUserId, mockListId, mockCollaboratorId)).resolves.not.toThrow();
+        
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+})
