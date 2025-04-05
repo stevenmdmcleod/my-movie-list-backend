@@ -241,3 +241,47 @@ describe("Delete User", () => {
         expect(dao.deleteUser).toHaveBeenCalledWith(mockUserId);
     });
 });
+
+describe("Friend Requests", () => {
+    let mockUsername = 'testUser';
+    let mockUserId = '123';
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if friend is not found by username", async () => {
+        dao.getUserByUsername.mockResolvedValue(null);
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.addFriend(mockUsername, mockUserId)).rejects.toThrow('Friend username could not be found')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername);
+    })
+
+    it("Throws user is not found by userId", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: '456'});
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.addFriend(mockUsername, mockUserId)).rejects.toThrow('User could not be found')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+
+    it("Throws if users are already friends", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: '456', username: 'testUser2', friends: [{userId: '123', username: 'testUser1'}]});
+        dao.getUserByUserId.mockResolvedValue({userId: '123', username: 'testUser1', friends: [{userId: '456', username: 'testUser2'}]});
+
+        await expect(userService.addFriend(mockUsername, mockUserId)).rejects.toThrow('User already friends')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("Successfully adds a friend", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: '456', username: 'testUser2', friends: []});
+        dao.getUserByUserId.mockResolvedValue({userId: '123', username: 'testUser1', friends: []});
+        dao.addFriend.mockResolvedValue({});
+
+        await expect(userService.addFriend(mockUsername, mockUserId)).resolves.not.toThrow()
+
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+});
