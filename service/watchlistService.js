@@ -139,7 +139,7 @@ async function getWatchlist(user, listId){
         return watchlist;
 
     } catch (error) {
-        logger.error(`Error in getWatchlist service: ${error.stack}`);
+        logger.error(`Error in getWatchlist service: ${error}`);
         throw error;
     }
     
@@ -165,7 +165,7 @@ async function getUserWatchlists(userId){
         }
 
     } catch (error) {
-        logger.error(`Error in getUserWatchlists service: ${error.stack}`);
+        logger.error(`Error in getUserWatchlists service: ${error}`);
         throw error;
     }
     
@@ -181,6 +181,10 @@ async function getCollaborativeLists(userId){
     
         const user = await userDao.getUserByUserId(userId);
         
+        if(!user){
+            throw new Error("User not found");
+            
+        }
         const collabLists = user.collaborativeLists;
         
         let foundCollabLists = []
@@ -202,7 +206,7 @@ async function getCollaborativeLists(userId){
 
 
     } catch (error) {
-        logger.error(`Error in getCollaborativeLists service: ${error.stack}`);
+        logger.error(`Error in getCollaborativeLists service: ${error}`);
         throw error;
     }
     
@@ -218,11 +222,14 @@ async function removeCollaborator(user, listId, userId){
         
 
     const userToRemove = await userDao.getUserByUserId(userId);
-    const watchlist = await watchlistDao.getWatchlistByListId(listId);
 
     if(!userToRemove){
         throw new Error("User not found");
     }
+
+    const watchlist = await watchlistDao.getWatchlistByListId(listId);
+
+    
     if(!watchlist){
         throw new Error("Watchlist not found");
     }
@@ -230,6 +237,9 @@ async function removeCollaborator(user, listId, userId){
         throw new Error("User is not a collaborator of this watchlist!");
     }
 
+    if(!userToRemove.collaborativeLists){
+        throw new Error("user is missing collaborativeLists");
+    }
     //check if user removing is themselves or if user is owner of watchlist
     if((user.userId == userId) || (user.userId == watchlist.userId)){
 
@@ -246,10 +256,7 @@ async function removeCollaborator(user, listId, userId){
     else{
         throw new Error("You do not have permission to remove this User from the watchlist");
     }
-
-
     } catch (error) {
-        logger.error(`Error in removeCollaborator: ${error}`)
         throw error;
     }
     

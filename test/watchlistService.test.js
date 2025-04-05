@@ -2,10 +2,13 @@ const watchlistService = require("../service/watchlistService");
 const watchlistDao = require("../repository/watchlistDAO");
 const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
+const logger = require('../util/logger');
 
 jest.mock("../repository/watchlistDAO");
 jest.mock("../repository/userDAO");
+jest.mock('../util/logger');
 jest.mock('uuid');
+
 
 describe("updateWatchlist", () => {
 
@@ -376,6 +379,8 @@ describe("Add Collaborator", () => {
         expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
     })
 })
+
+
 describe("addOrRemoveTitle", () => {
     const userId = "user-123";
     const listId = "list-456";
@@ -473,4 +478,422 @@ describe("addOrRemoveTitle", () => {
             .rejects.toThrow("User must be owner or collaborator on the watchlist to add a title");
     });
 
+});
+
+describe("createWatchlist", () => {
+
+    // Test for missing userId or listName
+    it("should throw an error if userId or listName is missing", async () => {
+      await expect(watchlistService.createWatchlist()).rejects.toThrow("invalid data");
+      await expect(watchlistService.createWatchlist(null, "My List")).rejects.toThrow("invalid data");
+      await expect(watchlistService.createWatchlist(1, null)).rejects.toThrow("invalid data");
+    });
+  
+    // Test for invalid listName length (less than 1 or more than 30 characters)
+    it("should throw an error if listName length is invalid", async () => {
+      await expect(watchlistService.createWatchlist(1, "")).rejects.toThrow("invalid data");
+      await expect(watchlistService.createWatchlist(1, "A".repeat(31))).rejects.toThrow("listName must be between 1 and 30 characters long");
+    });
+  
+    // Test for listName containing spaces
+    it("should throw an error if listName contains spaces", async () => {
+      await expect(watchlistService.createWatchlist(1, "My List")).rejects.toThrow("listName can not contain spaces!");
+    });
+  
+    // Test for watchlist already existing
+    it("should throw an error if a watchlist with that name already exists", async () => {
+      watchlistDao.getWatchlistByUserIdAndListName.mockResolvedValue({}); // Simulating an existing watchlist
+  
+      await expect(watchlistService.createWatchlist(1, "MyWatchlist")).rejects.toThrow("watchlist with that name already exists!");
+      expect(watchlistDao.getWatchlistByUserIdAndListName).toHaveBeenCalledWith(1, "MyWatchlist");
+    });
+  
+    // Test for successful watchlist creation
+    it("should create a new watchlist successfully", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        listName: "MyWatchlist",
+        collaborators: [],
+        likes: [],
+        titles: [],
+        comments: [],
+        isPublic: true
+      };
+  
+      watchlistDao.getWatchlistByUserIdAndListName.mockResolvedValue(null); // No existing watchlist
+      watchlistDao.createWatchlist.mockResolvedValue(mockWatchlist);
+      uuid.v4.mockReturnValue("mockListId"); // Mock UUID
+  
+      const response = await watchlistService.createWatchlist(1, "MyWatchlist");
+  
+      expect(response).toEqual(mockWatchlist);
+      expect(watchlistDao.createWatchlist).toHaveBeenCalledWith({
+        listId: "mockListId",
+        userId: 1,
+        listName: "MyWatchlist",
+        collaborators: [],
+        likes: [],
+        titles: [],
+        comments: [],
+        isPublic: true
+      });
+      expect(logger.info).toHaveBeenCalledWith("List successfully created: MyWatchlist");
+    });
+  
+    // Test for error during watchlist creation
+    it("should throw an error if there is an issue creating the watchlist", async () => {
+      watchlistDao.getWatchlistByUserIdAndListName.mockResolvedValue(null); // No existing watchlist
+      watchlistDao.createWatchlist.mockRejectedValue(new Error("Database error"));
+  
+      await expect(watchlistService.createWatchlist(1, "MyWatchlist")).rejects.toThrow("Database error");
+      expect(logger.error).toHaveBeenCalledWith("Error in PostList: Database error");
+    });
+});
+
+
+describe("getWatchlist", () => {
+
+    // Test for missing user or listId
+    it("should throw an error if listId or user is missing", async () => {
+      await expect(watchlistService.getWatchlist()).rejects.toThrow("bad data");
+      await expect(watchlistService.getWatchlist(null, "mockListId")).rejects.toThrow("bad data");
+      await expect(watchlistService.getWatchlist({ userId: 1 }, null)).rejects.toThrow("bad data");
+    });
+  
+    // Test for watchlist not found
+    it("should throw an error if watchlist doesn't exist", async () => {
+      watchlistDao.getWatchlistByListId.mockResolvedValue(null);
+  
+      await expect(watchlistService.getWatchlist({ userId: 1 }, "mockListId")).rejects.toThrow("Watchlist doesn't exist!");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("mockListId");
+    });
+  
+    // Test for public watchlist
+    it("should return the watchlist if it is public", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        isPublic: true,
+        collaborators: [],
+        titles: []
+      };
+  
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      const response = await watchlistService.getWatchlist({ userId: 1 }, "mockListId");
+      expect(response).toEqual(mockWatchlist);
+    });
+  
+    // Test for private watchlist, user is the owner
+    it("should return the watchlist if the user is the owner", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        isPublic: false,
+        collaborators: [],
+        titles: []
+      };
+  
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      const response = await watchlistService.getWatchlist({ userId: 1 }, "mockListId");
+      expect(response).toEqual(mockWatchlist);
+    });
+  
+    // Test for private watchlist, user is a collaborator
+    it("should return the watchlist if the user is a collaborator", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        isPublic: false,
+        collaborators: [2], // User with userId 2 is a collaborator
+        titles: []
+      };
+  
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      const response = await watchlistService.getWatchlist({ userId: 2 }, "mockListId");
+      expect(response).toEqual(mockWatchlist);
+    });
+  
+    // Test for private watchlist, user is not a collaborator and is not the owner
+    it("should return null if the user is not the owner or a collaborator", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        isPublic: false,
+        collaborators: [2], // Only userId 2 is a collaborator
+        titles: []
+      };
+  
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      const response = await watchlistService.getWatchlist({ userId: 3, isAdmin: false }, "mockListId");
+      expect(response).toBeNull();
+    });
+  
+    // Test for private watchlist, user is an admin
+    it("should return the watchlist if the user is an admin", async () => {
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        isPublic: false,
+        collaborators: [2],
+        titles: []
+      };
+  
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      const response = await watchlistService.getWatchlist({ userId: 3, isAdmin: true }, "mockListId");
+      expect(response).toEqual(mockWatchlist);
+    });
+  
+    // Test for error during execution
+    it("should log and throw an error if there is an issue", async () => {
+      watchlistDao.getWatchlistByListId.mockRejectedValue(new Error("Database error"));
+  
+      await expect(watchlistService.getWatchlist({ userId: 1 }, "mockListId")).rejects.toThrow("Database error");
+      expect(logger.error).toHaveBeenCalledWith("Error in getWatchlist service: Error: Database error");
+    });
+  });
+
+
+describe("removeCollaborator", () => {
+
+    
+    // Test for missing user, listId, or userId
+    it("should throw an error if user, listId, or userId is missing", async () => {
+      await expect(watchlistService.removeCollaborator()).rejects.toThrow("Bad Data");
+      await expect(watchlistService.removeCollaborator(null, "mockListId", 1)).rejects.toThrow("Bad Data");
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, null, 1)).rejects.toThrow("Bad Data");
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, "mockListId", null)).rejects.toThrow("Bad Data");
+    });
+  
+    // Test for user not found
+    it("should throw an error if the user to remove is not found", async () => {
+      userDao.getUserByUserId.mockResolvedValue(null); // Simulating user not found
+  
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, "mockListId", 2)).rejects.toThrow("User not found");
+      expect(userDao.getUserByUserId).toHaveBeenCalledWith(2);
+    });
+  
+    // Test for watchlist not found
+    it("should throw an error if the watchlist is not found", async () => {
+      userDao.getUserByUserId.mockResolvedValue({ userId: 2 });
+      watchlistDao.getWatchlistByListId.mockResolvedValue(null); // Simulating watchlist not found
+  
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, "mockListId", 2)).rejects.toThrow("Watchlist not found");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("mockListId");
+    });
+  
+    // Test for user not being a collaborator of the watchlist
+    it("should throw an error if the user is not a collaborator of the watchlist", async () => {
+      const mockUser = { userId: 2 };
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        collaborators: [3], // User with ID 3 is a collaborator, not user 2
+      };
+  
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, "mockListId", 2)).rejects.toThrow("User is not a collaborator of this watchlist!");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("mockListId");
+    });
+  
+    // Test for removing a collaborator, where the user is not the owner and not themselves
+    it("should throw an error if the user does not have permission to remove this user", async () => {
+      const mockUser = { userId: 2, collaborativeLists: []}; // User to be removed
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1, // Watchlist owner is user 1
+        collaborators: [2], // Collaborator is user 2
+      };
+  
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      // User 3 (not owner and not a collaborator) attempts to remove user 2
+      await expect(watchlistService.removeCollaborator({ userId: 3 }, "mockListId", 2)).rejects.toThrow("You do not have permission to remove this User from the watchlist");
+    });
+  
+    // Test for successful collaborator removal
+    it("should successfully remove a collaborator", async () => {
+      const mockUser = { userId: 2, collaborativeLists: ["mockListId"] }; // User to be removed
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1, // Watchlist owner is user 1
+        collaborators: [2], // Collaborator is user 2
+      };
+  
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+      userDao.updateUser.mockResolvedValue(true);
+      watchlistDao.updateWatchlist.mockResolvedValue(true);
+  
+      const response = await watchlistService.removeCollaborator({ userId: 1 }, "mockListId", 2);
+  
+      expect(response).toBeUndefined(); // Assuming no return value on success
+      expect(userDao.updateUser).toHaveBeenCalledWith(2, { collaborativeLists: [] });
+      expect(watchlistDao.updateWatchlist).toHaveBeenCalledWith("mockListId", { collaborators: [] });
+      expect(logger.info).toHaveBeenCalledWith("Watchlist mockListId and User successfully updated to remove collaborator: 2");
+    });
+  
+    // Test for error during the process (e.g., database failure)
+    it("should throw an error if there is an issue during the removal process", async () => {
+      const mockUser = { userId: 2 };
+      const mockWatchlist = {
+        listId: "mockListId",
+        userId: 1,
+        collaborators: [2], // Collaborator is user 2
+      };
+
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockResolvedValue(mockWatchlist);
+  
+      await expect(watchlistService.removeCollaborator({ userId: 1 }, "mockListId", 2)).rejects.toThrow("user is missing collaborativeLists");
+     
+    });
+});
+
+
+describe("getUserWatchlists", () => {
+
+    // Test for missing userId (bad data)
+    it("should throw an error if userId is missing", async () => {
+      await expect(watchlistService.getUserWatchlists()).rejects.toThrow("bad data");
+      await expect(watchlistService.getUserWatchlists(null)).rejects.toThrow("bad data");
+    });
+  
+    // Test for no watchlists found for the user
+    it("should throw an error if no watchlists are found for the user", async () => {
+      watchlistDao.getWatchlistsByUserId.mockResolvedValue(null); // Simulate no lists found
+  
+      await expect(watchlistService.getUserWatchlists(1)).rejects.toThrow("No lists found");
+      expect(watchlistDao.getWatchlistsByUserId).toHaveBeenCalledWith(1);
+    });
+  
+    // Test for successfully retrieving watchlists
+    it("should return watchlists if they are found", async () => {
+      const mockWatchlists = [
+        { listId: "list1", listName: "Watchlist 1", userId: 1 },
+        { listId: "list2", listName: "Watchlist 2", userId: 1 }
+      ];
+  
+      watchlistDao.getWatchlistsByUserId.mockResolvedValue(mockWatchlists); // Simulate retrieved watchlists
+  
+      const response = await watchlistService.getUserWatchlists(1);
+      expect(response).toEqual(mockWatchlists);
+      expect(watchlistDao.getWatchlistsByUserId).toHaveBeenCalledWith(1);
+    });
+  
+    // Test for error during the database operation
+    it("should log and throw an error if there is an issue during the retrieval", async () => {
+      watchlistDao.getWatchlistsByUserId.mockRejectedValue(new Error("Database error"));
+  
+      await expect(watchlistService.getUserWatchlists(1)).rejects.toThrow("Database error");
+      expect(logger.error).toHaveBeenCalledWith("Error in getUserWatchlists service: Error: Database error");
+    });
+});
+
+
+describe("getCollaborativeLists", () => {
+
+    // Test for missing userId (bad data)
+    it("should throw an error if userId is missing", async () => {
+      await expect(watchlistService.getCollaborativeLists()).rejects.toThrow("bad data");
+      await expect(watchlistService.getCollaborativeLists(null)).rejects.toThrow("bad data");
+    });
+  
+    // Test for user not found
+    it("should throw an error if the user is not found", async () => {
+      userDao.getUserByUserId.mockResolvedValue(null); // Simulate user not found
+  
+      await expect(watchlistService.getCollaborativeLists(1)).rejects.toThrow("User not found");
+      expect(userDao.getUserByUserId).toHaveBeenCalledWith(1);
+    });
+  
+    // Test for some collaborative lists not found
+    it("should return only the existing collaborative lists and log errors for missing ones", async () => {
+      const mockUser = {
+        userId: 1,
+        collaborativeLists: ["list1", "list2", "list3"]
+      };
+  
+      const mockExistingList = {
+        listId: "list1",
+        listName: "Existing Watchlist",
+        userId: 1
+      };
+  
+      // Mock the userDao and watchlistDao
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockImplementation((listId) => {
+        if (listId === "list1") {
+          return mockExistingList; // Simulate list1 being found
+        }
+        return null; // Simulate list2 and list3 not found
+      });
+  
+      // Call the function
+      const response = await watchlistService.getCollaborativeLists(1);
+  
+      // Ensure only the existing list is returned
+      expect(response).toEqual([mockExistingList]);
+  
+      // Ensure logger.error was called for the missing lists
+      expect(logger.error).toHaveBeenCalledWith("list list2 not found");
+      expect(logger.error).toHaveBeenCalledWith("list list3 not found");
+  
+      // Ensure the DAO functions were called correctly
+      expect(userDao.getUserByUserId).toHaveBeenCalledWith(1);
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("list1");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("list2");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("list3");
+    });
+  
+    // Test for successfully retrieving collaborative lists
+    it("should return all collaborative lists if they are found", async () => {
+      const mockUser = {
+        userId: 1,
+        collaborativeLists: ["list1", "list2"]
+      };
+  
+      const mockList1 = {
+        listId: "list1",
+        listName: "Watchlist 1",
+        userId: 1
+      };
+  
+      const mockList2 = {
+        listId: "list2",
+        listName: "Watchlist 2",
+        userId: 1
+      };
+  
+      // Mock the userDao and watchlistDao
+      userDao.getUserByUserId.mockResolvedValue(mockUser);
+      watchlistDao.getWatchlistByListId.mockResolvedValueOnce(mockList1).mockResolvedValueOnce(mockList2);
+  
+      const response = await watchlistService.getCollaborativeLists(1);
+  
+      // Ensure all lists are returned correctly
+      expect(response).toEqual([mockList1, mockList2]);
+  
+      // Ensure the DAO functions were called correctly
+      expect(userDao.getUserByUserId).toHaveBeenCalledWith(1);
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("list1");
+      expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith("list2");
+    });
+  
+    // Test for error during the database operation
+    it("should log and throw an error if there is an issue during the retrieval", async () => {
+      userDao.getUserByUserId.mockResolvedValue({ userId: 1, collaborativeLists: ["list1"] });
+      watchlistDao.getWatchlistByListId.mockRejectedValue(new Error("Database error"));
+  
+      await expect(watchlistService.getCollaborativeLists(1)).rejects.toThrow("Database error");
+      expect(logger.error).toHaveBeenCalledWith("Error in getCollaborativeLists service: Error: Database error");
+    });
 });

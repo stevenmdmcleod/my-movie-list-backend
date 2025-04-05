@@ -167,14 +167,14 @@ async function deleteUser(userToken) {
 async function getFriendsList(userId){
     try {
         if(!userId){
-            throw new error("need a valid userId");
+            throw new Error("need a valid userId");
         }
 
         let newfriendslist = [];
         const friendslist = await userDao.getFriendsListByUserId(userId);
         
         if(!friendslist){
-            throw new error("friendslist not retrieved");
+            throw new Error("friendslist not retrieved");
         }
 
         for(let i = 0; i < friendslist.length; i++){
