@@ -2,12 +2,10 @@ const watchlistService = require("../service/watchlistService");
 const watchlistDao = require("../repository/watchlistDAO");
 const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
-const userDao = require('../repository/userDAO'); 
 
 jest.mock("../repository/watchlistDAO");
 jest.mock("../repository/userDAO");
 jest.mock('uuid');
-jest.mock('../repository/userDAO');
 
 describe("updateWatchlist", () => {
 
