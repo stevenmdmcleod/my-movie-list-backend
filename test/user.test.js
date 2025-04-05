@@ -165,3 +165,170 @@ describe("updateUserProfile", () => {
         expect(dao.uploadFileToS3).toHaveBeenCalled();
     });
 });
+
+describe("Change password", () => {
+    const mockUser = { userId: '123', username: 'testUser'};
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it('Throws if user is not found', async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(
+            userService.changePassword({ password: 'abc12345'}, mockUser)
+        ).rejects.toThrow('User could not be found');
+    });
+
+    it("Throws if password is too short", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUser);
+
+        await expect(
+            userService.changePassword({ password: 'short'}, mockUser)
+        ).rejects.toThrow('Password must be longer than 7 characters');
+    });
+
+    it("Hashes password and calls DAO", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUser);
+
+        bcrypt.hash.mockResolvedValue('hashed-pass');
+        dao.changePassword.mockResolvedValue();
+
+        await userService.changePassword({ password: 'abc12345'}, mockUser);
+
+        expect(bcrypt.hash).toHaveBeenCalledWith('abc12345', 10);
+        expect(dao.changePassword).toHaveBeenCalledWith(mockUser.userId, 'hashed-pass');
+    });
+});
+
+describe("Delete User", () => {
+    const mockUserId = '123';
+    const mockToken = { userId: mockUserId};
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).rejects.toThrow('User could not be found');
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).not.toHaveBeenCalled();
+    });
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue({ userId: mockUserId });
+        dao.deleteUser.mockRejectedValue(new Error ("DAO: failed to delete user"))
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).rejects.toThrow('DAO: failed to delete user');
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("Deletes a user successfully", async () => {
+        dao.getUserByUserId.mockResolvedValue({ userId: mockUserId });
+        dao.deleteUser.mockResolvedValue({});
+
+        await expect(
+            userService.deleteUser(mockToken)
+        ).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.deleteUser).toHaveBeenCalledWith(mockUserId);
+    });
+});
+
+describe("Friend Requests", () => {
+    let mockUsername1 = 'testUser1';
+    let mockUsername2 = 'testUser2';
+    let mockUserId1 = '123';
+    let mockUserId2 = '546';
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if friend is not found by username", async () => {
+        dao.getUserByUsername.mockResolvedValue(null);
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.addFriend(mockUsername1, mockUserId1)).rejects.toThrow('Friend username could not be found')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername1);
+    })
+
+    it("Throws user is not found by userId", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: mockUserId2});
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.addFriend(mockUsername1, mockUserId1)).rejects.toThrow('User could not be found')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername1);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId1);
+    })
+
+    it("Throws if users are already friends", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: mockUserId2, username: mockUsername2, friends: [{userId: mockUserId1, username: mockUsername1}]});
+        dao.getUserByUserId.mockResolvedValue({userId: mockUserId1, username: mockUsername1, friends: [{userId: mockUserId2, username: mockUsername2}]});
+
+        await expect(userService.addFriend(mockUsername1, mockUserId1)).rejects.toThrow('User already friends')
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername1);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId1);
+    });
+
+    it("Successfully adds a friend", async () => {
+        dao.getUserByUsername.mockResolvedValue({userId: mockUserId2, username: mockUsername2, friends: []});
+        dao.getUserByUserId.mockResolvedValue({userId: mockUserId1, username: mockUsername1, friends: []});
+        dao.addFriend.mockResolvedValue({});
+
+        await expect(userService.addFriend(mockUsername1, mockUserId1)).resolves.not.toThrow()
+
+        expect(dao.getUserByUsername).toHaveBeenCalledWith(mockUsername1);
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId1);
+    })
+});
+
+describe("Ban User", () => {
+    let mockUserId = '123';
+    let mockStatusBanned = 'banned'
+    let mockStatusUnbanned = 'unbanned'
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.banUser(mockUserId, mockStatusBanned)).rejects.toThrow('User could not be found')
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+
+    it("Does not ban users when invalid ban status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, 'invalid status')).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).not.toHaveBeenCalled();
+    })
+
+    it("Bans users when using banned status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, mockStatusBanned)).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).toHaveBeenCalledWith(mockUserId, true);
+    })
+
+    it("Bans users when using unbanned status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, mockStatusUnbanned)).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).toHaveBeenCalledWith(mockUserId, false);
+    })
+})
