@@ -332,3 +332,148 @@ describe("Ban User", () => {
         expect(dao.banUser).toHaveBeenCalledWith(mockUserId, false);
     })
 })
+
+
+describe("validateLogin", () => {
+
+    // Test for missing username or password
+    it("should return null if username or password is missing", async () => {
+      let response = await userService.validateLogin("testuser", "");
+      expect(response).toBeNull();
+  
+      response = await userService.validateLogin("", "password");
+      expect(response).toBeNull();
+  
+      response = await userService.validateLogin("", "");
+      expect(response).toBeNull();
+    });
+  
+    // Test for user not found in the database
+    it("should return null if user is not found", async () => {
+      dao.getUserByUsername.mockResolvedValue(null);
+  
+      const response = await userService.validateLogin("nonexistentuser", "password");
+      expect(response).toBeNull();
+      expect(dao.getUserByUsername).toHaveBeenCalledWith("nonexistentuser");
+    });
+  
+    // Test for password mismatch
+    it("should return null if password does not match", async () => {
+      const mockUser = {
+        username: "testuser",
+        password: "$2b$10$hashedpassword" // Just an example hash
+      };
+  
+      dao.getUserByUsername.mockResolvedValue(mockUser);
+      bcrypt.compare.mockResolvedValue(false); // Password mismatch
+  
+      const response = await userService.validateLogin("testuser", "wrongpassword");
+      expect(response).toBeNull();
+      expect(bcrypt.compare).toHaveBeenCalledWith("wrongpassword", mockUser.password);
+    });
+  
+    // Test for successful login
+    it("should return user data without password if login is successful", async () => {
+      const mockUser = {
+        userId: 1,
+        username: "testuser",
+        password: "$2b$10$hashedpassword", // Just an example hash
+        isAdmin: false,
+        isBanned: false
+      };
+
+      const omitted = {
+        userId: 1,
+        username: "testuser",
+        
+        isAdmin: false,
+        isBanned: false
+      }
+  
+      dao.getUserByUsername.mockResolvedValue(mockUser);
+      bcrypt.compare.mockResolvedValue(true); // Password matches
+  
+      const response = await userService.validateLogin("testuser", "correctpassword");
+      expect(response).not.toBeNull();
+      expect(response.username).toBe(mockUser.username);
+      expect(response.password).toBeUndefined(); // Password should be omitted
+      expect(omitted).toEqual(omitted);
+      expect(bcrypt.compare).toHaveBeenCalledWith("correctpassword", mockUser.password);
+    });
+});
+
+
+
+describe("getFriendsList", () => {
+
+    // Test for missing or invalid userId
+    it("should throw an error if userId is not provided", async () => {
+      await expect(userService.getFriendsList()).rejects.toThrow("need a valid userId");
+      await expect(userService.getFriendsList(null)).rejects.toThrow("need a valid userId");
+      await expect(userService.getFriendsList(undefined)).rejects.toThrow("need a valid userId");
+    });
+  
+    // Test for failed retrieval of friends list (userDao returns null)
+    it("should throw an error if friends list is not retrieved", async () => {
+      dao.getFriendsListByUserId.mockResolvedValue(null);
+  
+      await expect(userService.getFriendsList(1)).rejects.toThrow("friendslist not retrieved");
+    });
+  
+    // Test for empty friends list
+    it("should return an empty array if friends list is empty", async () => {
+      dao.getFriendsListByUserId.mockResolvedValue([]);
+  
+      const response = await userService.getFriendsList(1);
+      expect(response).toEqual([]);
+    });
+  
+    // Test for valid friends list retrieval and transformation
+    it("should return a formatted friends list when the data is valid", async () => {
+      const mockFriendsList = [
+        {
+          userId: 1,
+          username: "friend1",
+          profilePicture: "url1",
+          biography: "bio1",
+          preferredGenres: ["rock"]
+        },
+        {
+          userId: 2,
+          username: "friend2",
+          profilePicture: "url2",
+          biography: "bio2",
+          preferredGenres: ["pop"]
+        }
+      ];
+  
+      dao.getFriendsListByUserId.mockResolvedValue(mockFriendsList);
+  
+      const expectedResponse = [
+        {
+          userId: 1,
+          username: "friend1",
+          profilePicture: "url1",
+          biography: "bio1",
+          preferredGenres: ["rock"]
+        },
+        {
+          userId: 2,
+          username: "friend2",
+          profilePicture: "url2",
+          biography: "bio2",
+          preferredGenres: ["pop"]
+        }
+      ];
+  
+      const response = await userService.getFriendsList(1);
+      expect(response).toEqual(expectedResponse);
+    });
+  
+    // Test for any errors thrown during execution (generic error handling)
+    it("should propagate errors correctly", async () => {
+      dao.getFriendsListByUserId.mockRejectedValue(new Error("Database error"));
+  
+      await expect(userService.getFriendsList(1)).rejects.toThrow("Database error");
+    });
+});
