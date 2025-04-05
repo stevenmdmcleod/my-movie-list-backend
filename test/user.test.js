@@ -289,5 +289,46 @@ describe("Friend Requests", () => {
 });
 
 describe("Ban User", () => {
+    let mockUserId = '123';
+    let mockStatusBanned = 'banned'
+    let mockStatusUnbanned = 'unbanned'
 
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if user is not found", async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.banUser(mockUserId, mockStatusBanned)).rejects.toThrow('User could not be found')
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+
+    it("Does not ban users when invalid ban status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, 'invalid status')).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).not.toHaveBeenCalled();
+    })
+
+    it("Bans users when using banned status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, mockStatusBanned)).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).toHaveBeenCalledWith(mockUserId, true);
+    })
+
+    it("Bans users when using unbanned status", async () => {
+        dao.getUserByUserId.mockResolvedValue(mockUserId);
+        dao.banUser.mockResolvedValue({});
+
+        await expect(userService.banUser(mockUserId, mockStatusUnbanned)).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.banUser).toHaveBeenCalledWith(mockUserId, false);
+    })
 })
