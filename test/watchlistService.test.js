@@ -1,8 +1,10 @@
 const watchlistService = require("../service/watchlistService");
 const watchlistDao = require("../repository/watchlistDAO");
+const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
 
 jest.mock("../repository/watchlistDAO");
+jest.mock("../repository/userDAO");
 jest.mock('uuid');
 
 describe("updateWatchlist", () => {
@@ -220,3 +222,49 @@ describe("deleteCommentOnWatchList", () => {
     });
 
 });
+
+describe("Like Watchlist", () => {
+    let mockUserId = '123';
+    let mockListId = '456';
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if user cannot be found", async () => {
+        userDao.getUserByUserId.mockResolvedValue(null);
+        watchlistDao.getWatchlistByListId(null);
+
+        await expect(watchlistService.likeWatchlist(mockUserId, mockListId)).rejects.toThrow("User could not be found");
+
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+
+    it("Throws if watchlist cannot be found", async () => {
+        userDao.getUserByUserId.mockResolvedValue({userId: mockUserId, likedLists: []});
+        watchlistDao.getWatchlistByListId.mockResolvedValue(null);
+
+        await expect(watchlistService.likeWatchlist(mockUserId, mockListId)).rejects.toThrow("Watchlist could not be found");
+
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Likes watchlist successfully", async () => {
+        userDao.getUserByUserId.mockResolvedValue({userId: mockUserId, likedLists: []});
+        watchlistDao.getWatchlistByListId.mockResolvedValue({listId: mockListId, likes:[]});
+
+        await expect(watchlistService.likeWatchlist(mockUserId, mockListId)).resolves.not.toThrow();
+
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+
+    it("Unlikes already liked watchlist successfully", async () => {
+        userDao.getUserByUserId.mockResolvedValue({userId: mockUserId, likedLists: [mockListId]});
+        watchlistDao.getWatchlistByListId.mockResolvedValue({listId: mockListId, likes:[mockUserId]});
+
+        await expect(watchlistService.likeWatchlist(mockUserId, mockListId)).resolves.not.toThrow();
+
+        expect(userDao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(watchlistDao.getWatchlistByListId).toHaveBeenCalledWith(mockListId);
+    })
+})
