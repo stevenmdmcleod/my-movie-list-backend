@@ -86,6 +86,16 @@ router.delete("/me", authenticateToken, async (req, res) => {
     }
 })
 
+router.get("/userId/:userId", authenticateToken, async (req, res) => {
+    try {
+        const user = await userService.getUserByUserId(req.params.userId);
+        return res.status(200).json(user);
+    } catch (error) {
+        logger.error(`Error retrieving user by ID: ${error.message}`);
+        return res.status(400).json(error.message);
+    }
+})
+
 router.get("/friends", authenticateToken, async (req, res) => {
     try {
         if(!req.user || !req.user.userId){
