@@ -477,3 +477,26 @@ describe("getFriendsList", () => {
       await expect(userService.getFriendsList(1)).rejects.toThrow("Database error");
     });
 });
+
+describe("Get User by UserId", () => {
+    const mockUserId = '123'
+    const mockBadUserId = '456';
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it("Throws if the user could not be found", async () => {
+        dao.getUserByUserId.mockResolvedValue(null);
+
+        await expect(userService.getUserByUserId(mockBadUserId)).rejects.toThrow("User could not be found");
+    
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockBadUserId);
+    })
+
+    it("Retrieves a user with valid UserId", async () => {
+        dao.getUserByUserId.mockResolvedValue({})
+
+        await expect(userService.getUserByUserId(mockUserId)).resolves.not.toThrow();
+
+        expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+    })
+})

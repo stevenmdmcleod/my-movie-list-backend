@@ -163,6 +163,23 @@ async function deleteUser(userToken) {
     }
 }
 
+async function getUserByUserId(userId) {
+    try {
+        const userFromUserId = await userDao.getUserByUserId(userId);
+
+        
+        if (!userFromUserId) {
+            throw new Error("User could not be found");
+        }
+
+        // Remove password attribute;
+        delete userFromUserId.password;
+
+        return userFromUserId;
+    } catch (error) {
+        throw error;
+    }
+}
 
 async function getFriendsList(userId){
     try {
@@ -263,4 +280,4 @@ async function updateUserProfile(user, userData, file) {
     }
 }
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile, banUser}
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile, banUser, getUserByUserId}
