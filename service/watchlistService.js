@@ -2,6 +2,7 @@ const watchlistDao = require("../repository/watchlistDAO");
 const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
 const logger = require("../util/logger");
+const { unmarshall } = require("@aws-sdk/util-dynamodb");
 const { error } = require("winston");
 
 async function createWatchlist(userId, listName) {
@@ -337,7 +338,7 @@ async function commentOnWatchList(data) {
 
         //if private list, only collaborators or owner can comment
         if(!existingWatchList.isPublic){
-            if (!(existingWatchList.collaborators.includes(userId) || existingWatchList.userId === userId)) {
+            if (!existingWatchList.collaborators.includes(userId) && existingWatchList.userId !== userId) {
                 throw new Error("Unauthorized: You cannot comment on this watchlist.");
             }
         }
@@ -422,7 +423,7 @@ async function addOrRemoveTitle(userId, listId, titleId) {
         }
 
         //only collaborators or owner can add/remove titles
-        if (!(watchlist.collaborators.includes(userId) || watchlist.userId === userId)) {
+        if (!watchlist.collaborators.includes(userId) && watchlist.userId !== userId) {
             throw new Error("User must be owner or collaborator on the watchlist to add a title");
         }
 
@@ -451,5 +452,35 @@ async function addOrRemoveTitle(userId, listId, titleId) {
     }
 }
 
+async function getAllComments(){
+    try {
+    
+        const items = await watchlistDao.getAllWatchlists();        
+        
+        const allComments = items
+            .map(item => unmarshall(item))
+            .flatMap(watchlist => 
+                (watchlist.comments || []).map(comment => ({
+                ...comment,
+                watchlistId: watchlist.listId // Add the watchlistId to each comment
+              }))
+            );
+        
+        const sortedComments = allComments.sort((a, b) => {
+            const dateA = new Date(a.datePosted);
+            const dateB = new Date(b.datePosted);
+        
+            return dateB - dateA; // Sort in descending order (newest first)
+            });
+
+        return sortedComments;
+    } catch (error) {
+        logger.error(`Error in getCollaborativeLists service: ${error}`);
+        throw error;
+    }
+    
+}
+
 module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
-     commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, getCollaborativeLists, getUserWatchlists, addOrRemoveTitle}
+     commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, 
+     getCollaborativeLists, getUserWatchlists, addOrRemoveTitle, getAllComments}
