@@ -481,6 +481,7 @@ describe("getFriendsList", () => {
 describe("Get User by UserId", () => {
     const mockUserId = '123'
     const mockBadUserId = '456';
+    const mockProfilePicture = 'asdf';
 
     beforeEach(() => jest.clearAllMocks());
 
@@ -493,10 +494,12 @@ describe("Get User by UserId", () => {
     })
 
     it("Retrieves a user with valid UserId", async () => {
-        dao.getUserByUserId.mockResolvedValue({})
+        dao.getUserByUserId.mockResolvedValue({userId: mockUserId, profilePicture: mockProfilePicture})
+        dao.generateSignedUrl.mockResolvedValue('signedUrl');
 
         await expect(userService.getUserByUserId(mockUserId)).resolves.not.toThrow();
 
         expect(dao.getUserByUserId).toHaveBeenCalledWith(mockUserId);
+        expect(dao.generateSignedUrl).toHaveBeenCalledWith(mockProfilePicture)
     })
 })
