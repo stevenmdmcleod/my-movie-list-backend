@@ -172,6 +172,12 @@ async function getUserByUserId(userId) {
             throw new Error("User could not be found");
         }
 
+        // Generates signed Url if there is an s3 key saved in .profilePicture
+        if (userFromUserId.profilePicture.length > 0) {
+            const signedUrl = await userDao.generateSignedUrl(userFromUserId.profilePicture);
+            userFromUserId.signedUrl = signedUrl;
+        }
+        
         // Remove password attribute;
         delete userFromUserId.password;
 
@@ -262,8 +268,8 @@ async function updateUserProfile(user, userData, file) {
 
         // Merge updated data with existing profile
         const newProfile = {
-            biography: userData.biography?.trim() || oldProfile.biography,
-            preferredGenres: userData.preferredGenres?.length ? userData.preferredGenres : oldProfile.preferredGenres,
+            biography: userData.biography?.trim() || '',
+            preferredGenres: userData.preferredGenres?.length ? userData.preferredGenres : [],
             profilePicture: fileName
         };
 

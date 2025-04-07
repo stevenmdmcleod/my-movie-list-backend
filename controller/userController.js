@@ -125,13 +125,18 @@ function validateUserData(req, res, next) {
 router.put('/update-profile', authenticateToken, upload.single('image'), async (req, res) => {
     
     try {
-        const { biography, preferredGenres } = req.body;
+        let { biography, preferredGenres } = req.body;
 
         const file = req.file; 
 
         // if (!file) {
         //     return res.status(400).json({ error: "No file to upload"});
         // }
+  
+        // Ensure preferredGenres is always an array
+        if (!Array.isArray(preferredGenres)) {
+            preferredGenres = preferredGenres ? [preferredGenres] : [];
+        }
 
         if (file && !validateFileType(file)) {
             return res.status(400).json({ error: "Invalid file type. Only JPEG, JPG, and PNG are allowed." });
