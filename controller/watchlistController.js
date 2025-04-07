@@ -202,6 +202,20 @@ router.patch("/:listId/titles", authenticateToken, async (req, res) => {
         logger.error(`Error adding/removing title: ${error.message}`);
         res.status(400).json(error.message);
     }
+});
+
+router.get("/comments/all", authenticateToken, async (req, res) => {
+    try {
+        if (req.user.isAdmin == false) {
+            logger.error(`Error: non-admin attempting access to admin route`);
+            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+        }
+
+        const comments = await watchlistService.getAllComments();
+        res.status(200).json(comments);
+      } catch (err) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
 })
 
 module.exports = router;

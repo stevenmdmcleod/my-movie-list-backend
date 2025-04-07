@@ -1,3 +1,4 @@
+const { ScanCommand } = require("@aws-sdk/client-dynamodb");
 const {dbClient, s3} = require("../util/config");
 const logger = require("../util/logger");
 const {PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand} = require("@aws-sdk/lib-dynamodb");
@@ -121,4 +122,20 @@ async function updateWatchlist(listId, updates) {
     }
 }
 
-module.exports = {createWatchlist, getWatchlistByUserIdAndListName, getWatchlistByListId, updateWatchlist, getWatchlistsByUserId}
+async function getAllWatchlists() {
+    try {
+
+        const command = new ScanCommand({
+            TableName
+        });
+
+        const response = await dbClient.send(command);
+        
+        return response.Items;
+    } catch (error) {
+        logger.error("Error updating watchList:", error);
+        throw new Error("Failed to update watchList.");
+    }
+}
+
+module.exports = {createWatchlist, getWatchlistByUserIdAndListName, getWatchlistByListId, updateWatchlist, getWatchlistsByUserId, getAllWatchlists}
