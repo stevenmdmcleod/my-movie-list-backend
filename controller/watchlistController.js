@@ -218,4 +218,19 @@ router.get("/comments/all", authenticateToken, async (req, res) => {
       }
 })
 
+//get all watchlists
+router.get("/", authenticateToken, async (req, res) => {
+    try {
+        if (req.user.isAdmin == false) {
+            logger.error(`Error: non-admin attempting access to admin route`);
+            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+        }
+
+        const watchlists = await watchlistService.getAllWatchlists();
+        res.status(200).json(watchlists);
+      } catch (err) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+})
+
 module.exports = router;

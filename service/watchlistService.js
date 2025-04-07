@@ -462,6 +462,7 @@ async function getAllComments(){
             .flatMap(watchlist => 
                 (watchlist.comments || []).map(comment => ({
                 ...comment,
+                watchlistName: watchlist.listName,
                 watchlistId: watchlist.listId // Add the watchlistId to each comment
               }))
             );
@@ -475,7 +476,19 @@ async function getAllComments(){
 
         return sortedComments;
     } catch (error) {
-        logger.error(`Error in getCollaborativeLists service: ${error}`);
+        logger.error(`Error in getAllComments service: ${error}`);
+        throw error;
+    }
+    
+}
+
+async function getAllWatchlists(){
+    try {    
+        const items = await watchlistDao.getAllWatchlists();        
+
+        return items.map(item => unmarshall(item));
+    } catch (error) {
+        logger.error(`Error in getAllWatchlists service: ${error}`);
         throw error;
     }
     
@@ -483,4 +496,4 @@ async function getAllComments(){
 
 module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
      commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, 
-     getCollaborativeLists, getUserWatchlists, addOrRemoveTitle, getAllComments}
+     getCollaborativeLists, getUserWatchlists, addOrRemoveTitle, getAllComments, getAllWatchlists}
