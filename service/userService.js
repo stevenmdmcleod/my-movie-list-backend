@@ -286,4 +286,16 @@ async function updateUserProfile(user, userData, file) {
     }
 }
 
-module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile, banUser, getUserByUserId}
+async function getAllUsers(){
+    try {    
+        const items = await userDao.getAllUsers();        
+
+        return items.map(item => unmarshall(item));
+    } catch (error) {
+        logger.error(`Error in getAllUsers service: ${error}`);
+        throw error;
+    }
+    
+}
+
+module.exports = {createUser, changePassword, validateLogin, deleteUser, addFriend, getFriendsList, updateUserProfile, banUser, getUserByUserId, getAllUsers}
