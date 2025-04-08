@@ -318,6 +318,22 @@ async function updateUser(userId, updates) {
     }
 }
 
+async function getAllUsers() {
+    try {
+
+        const command = new ScanCommand({
+            TableName
+        });
+
+        const response = await dbClient.send(command);
+        
+        return response.Items;
+    } catch (error) {
+        logger.error("Error updating users' list:", error);
+        throw new Error("Failed to update users' list.");
+    }
+}
+
 module.exports = {
     createUser, 
     getUserByUsername, 
@@ -333,5 +349,6 @@ module.exports = {
     uploadFileToS3,
     banUser,
     updateLikedLists,
-    updateUser
+    updateUser,
+    getAllUsers
 }

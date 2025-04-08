@@ -195,4 +195,18 @@ function validateBanRequest(req,res,next) {
     next();
   }
 
+  router.get("/users", authenticateToken, async (req, res) => {
+    try {
+        if (req.user.isAdmin == false) {
+            logger.error(`Error: non-admin attempting access to admin route`);
+            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+        }
+
+        const users = await userService.getAllUsers();
+        res.status(200).json(users);
+      } catch (err) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+})
+
 module.exports = router;
