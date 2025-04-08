@@ -3,6 +3,7 @@ const {PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand} = req
 const logger = require("../util/logger");
 const {PutObjectCommand, GetObjectCommand, DeleteObjectCommand} = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { ScanCommand } = require("@aws-sdk/client-dynamodb");
 
 const TableName = 'my-movie-list-users';
 const BucketName = process.env.BUCKET_NAME;

@@ -2,6 +2,7 @@ const userDao = require("../repository/userDAO");
 const bcrypt = require("bcrypt");
 const uuid = require('uuid');
 const logger = require("../util/logger");
+const { unmarshall } = require("@aws-sdk/util-dynamodb");
 
 async function createUser(user) {
     
@@ -288,9 +289,27 @@ async function updateUserProfile(user, userData, file) {
 
 async function getAllUsers(){
     try {    
-        const items = await userDao.getAllUsers();        
+        const items = await userDao.getAllUsers();
+        const users = items.map(item => unmarshall(item));        
 
-        return items.map(item => unmarshall(item));
+        const usersWithSignedUrls = await Promise.all(
+            users.map(async user => {
+                delete user.password;
+                delete user.likedLists;
+                delete user.collaborativeLists;
+                delete user.recentlyAdded;
+                delete user.profilePicture;
+                
+              if (user.profilePicture) {
+                const signedUrl = await userDao.generateSignedUrl(user.profilePicture);
+                
+                return { ...user, signedUrl };
+              }
+              return { ...user, signedUrl: null };
+            })
+          );
+      
+          return usersWithSignedUrls;
     } catch (error) {
         logger.error(`Error in getAllUsers service: ${error}`);
         throw error;
