@@ -298,7 +298,6 @@ async function getAllUsers(){
                 delete user.likedLists;
                 delete user.collaborativeLists;
                 delete user.recentlyAdded;
-                delete user.profilePicture;
                 
               if (user.profilePicture) {
                 const signedUrl = await userDao.generateSignedUrl(user.profilePicture);
