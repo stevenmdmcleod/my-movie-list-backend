@@ -133,8 +133,8 @@ async function getAllWatchlists() {
         
         return response.Items;
     } catch (error) {
-        logger.error("Error updating watchList:", error);
-        throw new Error("Failed to update watchList.");
+        logger.error("Error retrieving all watchList:", error);
+        throw new Error("Failed to retrieve all watchList.");
     }
 }
 

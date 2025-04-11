@@ -330,8 +330,8 @@ async function getAllUsers() {
         
         return response.Items;
     } catch (error) {
-        logger.error("Error updating users' list:", error);
-        throw new Error("Failed to update users' list.");
+        logger.error("Error getting all users:", error);
+        throw new Error("Failed to get all users.");
     }
 }
 
