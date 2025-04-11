@@ -363,7 +363,7 @@ async function commentOnWatchList(data) {
             comment: newComment
         };
     } catch (error) {
-        logger.error(`Error in updateWatchList service: ${error.stack}`);
+        logger.error(`Error in commentOnWatchList service: ${error.stack}`);
         throw error;
     }
 }

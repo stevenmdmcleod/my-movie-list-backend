@@ -20,7 +20,7 @@ app.use("/users", userController);
 
 app.use(loggerMiddleware);
 
-app.use("/watchlist", authenticateToken, watchlistController);
+app.use("/watchlist", watchlistController);
 
 function loggerMiddleware(req, res, next){
   logger.info(`Incoming ${req.method} : ${req.url}`);

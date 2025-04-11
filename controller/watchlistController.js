@@ -71,6 +71,18 @@ router.get("/collaborative-lists", authenticateToken, async (req, res) => {
     }
 })
 
+//get all public watchlists for public user
+router.get("/public", async (req, res) => {
+    try {
+        const watchlists = await watchlistService.getPublicWatchlists();
+        res.status(200).json(watchlists);
+        
+      } catch (error) {
+        logger.error(`Error getting public watchlists: ${error.message}`);
+        res.status(400).json(error.message);
+      }
+});
+
 //add a colaborator to collaborative list
 router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
     try {
@@ -152,7 +164,7 @@ router.put("/:listId/comments", authenticateToken, async (req, res) => {
 
         res.status(200).json(data);
     } catch (err) {
-        logger.error(`Error updating  watchlist: ${err.message}`);
+        logger.error(`Error commenting on  watchlist: ${err.message}`);
         res.status(403).json(err.message);
     }
 });
@@ -193,7 +205,7 @@ router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) =
 
         res.status(200).json(data);
     } catch (err) {
-        logger.error(`Error updating  watchlist: ${err.message}`);
+        logger.error(`Error deleting a comment: ${err.message}`);
         res.status(403).json(err.message);
     }
 });
@@ -205,7 +217,7 @@ router.patch("/:listId/titles", authenticateToken, async (req, res) => {
         res.status(200).json(`Title has been successfully ${result}`)
     } catch (error) {
         logger.error(`Error adding/removing title: ${error.message}`);
-        res.status(400).json(error.message);
+        res.status(403).json(error.message);
     }
 });
 
@@ -219,25 +231,27 @@ router.get("/comments/all", authenticateToken, async (req, res) => {
 
         const comments = await watchlistService.getAllComments();
         res.status(200).json(comments);
-      } catch (err) {
-        res.status(500).json({ error: "Internal Server Error" });
+      } catch (error) {
+        logger.error(`Error getting all comments: ${error.message}`);
+        res.status(400).json(error.message);
       }
 })
 
-//get all watchlists
+//get all watchlists for admin only
 router.get("/", authenticateToken, async (req, res) => {
     try {
-        if (req.user.isAdmin) {
-            const watchlists = await watchlistService.getAllWatchlists();
-            res.status(200).json(watchlists);
-        } else{
-            const watchlists = await watchlistService.getPublicWatchlists();
-            res.status(200).json(watchlists);
+        if (!req.user.isAdmin) {
+            logger.error(`Error: non-admin attempting access to admin route`);
+            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
         }
+
+        const watchlists = await watchlistService.getAllWatchlists();
+        res.status(200).json(watchlists);        
         
-      } catch (err) {
-        res.status(500).json({ error: "Internal Server Error" });
-      }
+    } catch (error) {
+        logger.error(`Error getting all watchlists: ${error.message}`);
+        res.status(400).json(error.message);
+    }
 })
 
 module.exports = router;
