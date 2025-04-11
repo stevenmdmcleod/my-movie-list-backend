@@ -30,7 +30,8 @@ async function authenticateToken(req, res, next){
 async function optionalToken(req, res, next) {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
-
+    
+    // Handles invalid token formats, or null/undefined if there is no token saved in localStorage
     if (
         typeof token !== "string" ||
         token === "null" ||
@@ -41,10 +42,15 @@ async function optionalToken(req, res, next) {
         next();
         return;
     }
+    // Handles when there is a token in localStorage
+    // If invalid or expired, sets req.user to null
+    // Otherwise, decodes jwt info and saves to req.user
     jwt.verify(token, SECRET_KEY, (err, decodedToken) => {
+        // Throws err if expired
         if (err) {
-            
-            return res.status(403).json({ message: 'Invalid token, forbidden Access!' });
+            req.user = null;
+            next();
+            return;
         }
         else{
         req.user = decodedToken;  // Add the decoded token to the request object
