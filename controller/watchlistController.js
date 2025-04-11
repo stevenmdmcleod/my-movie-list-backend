@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const watchlistService = require('../service/watchlistService');
-const { authenticateToken } = require("../util/jwt");
+const { authenticateToken, optionalToken } = require("../util/jwt");
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 const logger = require("../util/logger");
@@ -170,8 +170,8 @@ router.put("/:listId/comments", authenticateToken, async (req, res) => {
 });
 
 //get a watchlist by list ID
-router.get("/:listId", authenticateToken, async (req, res) => {
-    if(!req.user || !req.params.listId){
+router.get("/:listId", optionalToken, async (req, res) => {
+    if(!req.params.listId){
         return res.status(400).json({message: "Bad request data"});
     }
     
@@ -186,7 +186,7 @@ router.get("/:listId", authenticateToken, async (req, res) => {
         }
         return res.status(200).json(result);
     } catch (error) {
-        return res.status(400).json(error);
+        return res.status(400).json(error.message);
     }
 });
 

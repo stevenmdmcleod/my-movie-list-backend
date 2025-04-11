@@ -27,8 +27,28 @@ async function authenticateToken(req, res, next){
     });   
 }
 
+async function optionalToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    if (!token) {
+        res.user = null;
+        next();
+        return;
+    }
 
+    jwt.verify(token, SECRET_KEY, (err, decodedToken) => {
+        if (err) {
+            
+            return res.status(403).json({ message: 'Invalid token, forbidden Access!' });
+        }
+        else{
+        req.user = decodedToken;  // Add the decoded token to the request object
+        next();  // Proceed to the next middleware or route handler
+        }
+    });   
+}
 
 module.exports = {
-    authenticateToken
+    authenticateToken,
+    optionalToken
 }

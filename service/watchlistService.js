@@ -117,8 +117,7 @@ async function updateWatchlist(userId, listId, data) {
 
 async function getWatchlist(user, listId){
     try {
-
-        if(!listId || !user){
+        if(!listId){
             throw new Error("bad data");
         }
     
@@ -127,10 +126,15 @@ async function getWatchlist(user, listId){
         if(!watchlist){
             throw new Error("Watchlist doesn't exist!");
         }
+
         if(watchlist.isPublic){
             return watchlist;
         }
 
+        if(!user) {
+            throw new Error("User JWT missing for accessing non-public list")
+        }
+        
         collaboratorIndex = watchlist.collaborators.indexOf(user.userId);
 
 
