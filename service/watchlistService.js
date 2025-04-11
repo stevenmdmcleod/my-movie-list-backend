@@ -486,14 +486,62 @@ async function getAllWatchlists(){
     try {    
         const items = await watchlistDao.getAllWatchlists();        
 
-        return items.map(item => unmarshall(item));
+        const unmarshalled = items.map(item => unmarshall(item));        
+
+        //add username to watchlist object
+        const withUsernames = await Promise.all(unmarshalled.map(async (watchlist) => {
+            const user = await userDao.getUserByUserId(watchlist.userId);
+            return {
+                ...watchlist,
+                username: user ? user.username : "unknown"
+            };
+        }));
+
+        // Sort by number of likes
+        const sortedWatchlists = withUsernames.sort((a, b) => {
+            const aLikes = Array.isArray(a.likes) ? a.likes.length : 0;
+            const bLikes = Array.isArray(b.likes) ? b.likes.length : 0;
+            return bLikes - aLikes;
+        });
+
+        return sortedWatchlists;
     } catch (error) {
         logger.error(`Error in getAllWatchlists service: ${error}`);
         throw error;
-    }
-    
+    }    
+}
+
+async function getPublicWatchlists(){
+    try {    
+        const items = await watchlistDao.getAllWatchlists();        
+
+        const unmarshalled = items.map(item => unmarshall(item));
+        const publicWatchlists = unmarshalled.filter(w => w.isPublic);
+
+        //add username to watchlist object
+        const withUsernames = await Promise.all(publicWatchlists.map(async (watchlist) => {
+            const user = await userDao.getUserByUserId(watchlist.userId);
+            return {
+                ...watchlist,
+                username: user ? user.username : "unknown"
+            };
+        }));
+
+        // Sort by number of likes
+        const sortedWatchlists = withUsernames.sort((a, b) => {
+            const aLikes = Array.isArray(a.likes) ? a.likes.length : 0;
+            const bLikes = Array.isArray(b.likes) ? b.likes.length : 0;
+            return bLikes - aLikes;
+        });
+
+        return sortedWatchlists;
+    } catch (error) {
+        logger.error(`Error in getPublicWatchlists service: ${error}`);
+        throw error;
+    }    
 }
 
 module.exports = {createWatchlist, updateWatchlist, getWatchlist, likeWatchlist,
      commentOnWatchList, addCollaborators, deleteCommentOnWatchList, removeCollaborator, 
-     getCollaborativeLists, getUserWatchlists, addOrRemoveTitle, getAllComments, getAllWatchlists}
+     getCollaborativeLists, getUserWatchlists, addOrRemoveTitle, getAllComments, getAllWatchlists,
+     getPublicWatchlists}

@@ -11,6 +11,7 @@ const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage});
 
+//register a user
 router.post("/register", validateUserData, async (req, res) => {
     try {
         const data = await userService.createUser(req.body);
@@ -21,6 +22,7 @@ router.post("/register", validateUserData, async (req, res) => {
     }
 });
 
+//login user
 router.post("/login", async (req, res) => {
     const {username, password} = req.body;
     //console.log(username, password);
@@ -48,6 +50,7 @@ router.post("/login", async (req, res) => {
     }
 })
 
+//change password
 router.post("/change-password", authenticateToken, async (req, res) => {
     try {
         if (!(req.body.password)) {
@@ -62,6 +65,7 @@ router.post("/change-password", authenticateToken, async (req, res) => {
     }
 })
 
+//add a friend
 router.patch("/friends", authenticateToken, async (req, res) => {
     if (!(req.body.username) || !(req.user) || !(req.user.userId)) {
         return res.status(400).json({message: "Bad request: missing username or required token attributes"});
@@ -76,6 +80,7 @@ router.patch("/friends", authenticateToken, async (req, res) => {
     }
 })
 
+//delete the account
 router.delete("/me", authenticateToken, async (req, res) => {
     try {
         await userService.deleteUser(req.user);
@@ -86,6 +91,7 @@ router.delete("/me", authenticateToken, async (req, res) => {
     }
 })
 
+//get user by user ID
 router.get("/userId/:userId", authenticateToken, async (req, res) => {
     try {
         const user = await userService.getUserByUserId(req.params.userId);
@@ -96,6 +102,7 @@ router.get("/userId/:userId", authenticateToken, async (req, res) => {
     }
 })
 
+//get all friends
 router.get("/friends", authenticateToken, async (req, res) => {
     try {
         if(!req.user || !req.user.userId){
@@ -122,6 +129,7 @@ function validateUserData(req, res, next) {
     }
 }
 
+//update profile: genres, biography, profilePicture
 router.put('/update-profile', authenticateToken, upload.single('image'), async (req, res) => {
     
     try {
@@ -156,6 +164,7 @@ function validateFileType(file) {
     return allowedTypes.includes(file.mimetype);
 }
 
+//ban or unban user for admin
 router.patch("/:userId/ban-status", authenticateToken, validateBanRequest, async ( req, res) => {
     try {
         await userService.banUser(req.params.userId, req.body.status);
@@ -195,7 +204,8 @@ function validateBanRequest(req,res,next) {
     next();
   }
 
-  router.get("/users", authenticateToken, async (req, res) => {
+//get all users for admin
+router.get("/users", authenticateToken, async (req, res) => {
     try {
         if (req.user.isAdmin == false) {
             logger.error(`Error: non-admin attempting access to admin route`);

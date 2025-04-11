@@ -3,6 +3,7 @@ const watchlistDao = require("../repository/watchlistDAO");
 const userDao = require("../repository/userDAO");
 const uuid = require('uuid');
 const logger = require('../util/logger');
+const { marshall } = require('@aws-sdk/util-dynamodb');
 
 jest.mock("../repository/watchlistDAO");
 jest.mock("../repository/userDAO");
@@ -896,4 +897,45 @@ describe("getCollaborativeLists", () => {
       await expect(watchlistService.getCollaborativeLists(1)).rejects.toThrow("Database error");
       expect(logger.error).toHaveBeenCalledWith("Error in getCollaborativeLists service: Error: Database error");
     });
+});
+
+describe('Watchlist Service getAllWatchlists/ getPublicWatchlists', () => {
+  const mockItems = [
+      marshall({ id: "1", userId: 'user1', name: "Public List", isPublic: true, likes: ['like1', 'like2'] }),
+      marshall({ id: "2", userId: 'user2', name: "Private List", isPublic: false, likes: ['like1'] }),
+      marshall({ id: "3", userId: 'user3', name: "Public List1", isPublic: true, likes: ['like1','like2','like3'] }),
+  ];
+
+  beforeEach(() => {
+      jest.clearAllMocks();
+  });
+
+  test('getAllWatchlists should return all items sorted', async () => {
+    watchlistDao.getAllWatchlists.mockResolvedValue(mockItems);
+
+    const result = await watchlistService.getAllWatchlists();
+    
+    expect(result).toEqual([
+        { id: "3", userId: 'user3', name: "Public List1", isPublic: true, likes: ['like1','like2','like3'] },
+        { id: "1", userId: 'user1', name: "Public List", isPublic: true, likes: ['like1', 'like2'] },
+        { id: "2", userId: 'user2', name: "Private List", isPublic: false, likes: ['like1'] }
+    ]);
+
+    expect(result.every(w => 'username' in w)).toBe(true);
+    
+  });
+
+  test('getPublicWatchlists should return public lists sorted', async () => {
+    watchlistDao.getAllWatchlists.mockResolvedValue(mockItems);
+
+    const result = await watchlistService.getPublicWatchlists();
+
+    expect(result).toEqual([
+      { id: "3", userId: 'user3', name: "Public List1", isPublic: true, likes: ['like1','like2','like3'] },
+      { id: "1", userId: 'user1', name: "Public List", isPublic: true, likes: ['like1', 'like2'] }
+    ]);
+
+    expect(result.every(w => 'username' in w)).toBe(true);
+    
+  });
 });
