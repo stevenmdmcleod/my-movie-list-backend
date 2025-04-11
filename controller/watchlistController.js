@@ -6,6 +6,7 @@ require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 const logger = require("../util/logger");
 
+//create watchlist
 router.post("/", authenticateToken, async (req, res) => {
     
     if(!req.user.userId){
@@ -25,6 +26,7 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 });
 
+//like or unlike watchlist
 router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
     if(!req.user.userId){
         return res.status(400).json("invalid token data");
@@ -39,7 +41,7 @@ router.patch("/:listId/likes" , authenticateToken, async (req, res) => {
     }
 })
 
-
+//get watchlists by user ID from JWT
 router.get("/my-watchlists", authenticateToken, async (req, res) => {
     if (!req.user.userId) {
         return res.status(400).json("Missing required JWT information")
@@ -54,6 +56,7 @@ router.get("/my-watchlists", authenticateToken, async (req, res) => {
     }
 })
 
+//get collaborative lists by user ID from JWT
 router.get("/collaborative-lists", authenticateToken, async (req, res) => {
     if (!req.user.userId) {
         return res.status(400).json("Missing required JWT information")
@@ -68,7 +71,7 @@ router.get("/collaborative-lists", authenticateToken, async (req, res) => {
     }
 })
 
-
+//add a colaborator to collaborative list
 router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
     try {
         await watchlistService.addCollaborators(req.user.userId, req.params.listId, req.body.collaborator);
@@ -82,7 +85,7 @@ router.patch("/:listId/collaborators", authenticateToken, validateAddCollaborato
 
 
 
-
+//remove colaborator from collaborative list
 router.delete("/:listId/collaborators", authenticateToken, validateAddCollaborator, async (req, res) => {
     try {
         await watchlistService.removeCollaborator(req.user, req.params.listId, req.body.collaborator);
@@ -154,6 +157,7 @@ router.put("/:listId/comments", authenticateToken, async (req, res) => {
     }
 });
 
+//get a watchlist by list ID
 router.get("/:listId", authenticateToken, async (req, res) => {
     if(!req.user || !req.params.listId){
         return res.status(400).json({message: "Bad request data"});
@@ -174,7 +178,7 @@ router.get("/:listId", authenticateToken, async (req, res) => {
     }
 });
 
-//delete a comment
+//delete a comment for admin
 router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) => {
     try {
         if (req.user.isAdmin == false) {
@@ -194,6 +198,7 @@ router.put("/:listId/comments/:commentId", authenticateToken, async (req, res) =
     }
 });
 
+//add or remove title from watchlist
 router.patch("/:listId/titles", authenticateToken, async (req, res) => {
     try {        
         const result = await watchlistService.addOrRemoveTitle(req.user.userId, req.params.listId, req.body.titleId);
@@ -204,6 +209,7 @@ router.patch("/:listId/titles", authenticateToken, async (req, res) => {
     }
 });
 
+//view all comments for admin
 router.get("/comments/all", authenticateToken, async (req, res) => {
     try {
         if (req.user.isAdmin == false) {
@@ -221,13 +227,14 @@ router.get("/comments/all", authenticateToken, async (req, res) => {
 //get all watchlists
 router.get("/", authenticateToken, async (req, res) => {
     try {
-        if (req.user.isAdmin == false) {
-            logger.error(`Error: non-admin attempting access to admin route`);
-            return res.status(403).json({message: "Forbidden Access: must be an admin to access this route"});
+        if (req.user.isAdmin) {
+            const watchlists = await watchlistService.getAllWatchlists();
+            res.status(200).json(watchlists);
+        } else{
+            const watchlists = await watchlistService.getPublicWatchlists();
+            res.status(200).json(watchlists);
         }
-
-        const watchlists = await watchlistService.getAllWatchlists();
-        res.status(200).json(watchlists);
+        
       } catch (err) {
         res.status(500).json({ error: "Internal Server Error" });
       }
