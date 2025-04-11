@@ -30,12 +30,17 @@ async function authenticateToken(req, res, next){
 async function optionalToken(req, res, next) {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
-    if (!token) {
-        res.user = null;
+
+    if (
+        typeof token !== "string" ||
+        token === "null" ||
+        token === "undefined" ||
+        token.trim() === ""
+    ) {
+        req.user = null;
         next();
         return;
     }
-
     jwt.verify(token, SECRET_KEY, (err, decodedToken) => {
         if (err) {
             
