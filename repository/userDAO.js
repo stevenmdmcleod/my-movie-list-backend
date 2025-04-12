@@ -4,9 +4,10 @@ const logger = require("../util/logger");
 const {PutObjectCommand, GetObjectCommand, DeleteObjectCommand} = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { ScanCommand } = require("@aws-sdk/client-dynamodb");
-
+require('dotenv').config();
 const TableName = 'my-movie-list-users';
 const BucketName = process.env.BUCKET_NAME;
+
 
 async function createUser(user) {
     const command = new PutCommand({
@@ -177,6 +178,7 @@ async function deleteUser(userId) {
 }
 
 async function uploadFileToS3(file, fileName) {
+    
     const params = {
         Bucket: BucketName,
         Key: fileName,
