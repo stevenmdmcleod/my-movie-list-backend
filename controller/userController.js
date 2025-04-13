@@ -3,7 +3,7 @@ const router = express.Router();
 const userService = require('../service/userService');
 const logger = require("../util/logger");
 const jwt = require("jsonwebtoken");
-const { authenticateToken } = require("../util/jwt");
+const { authenticateToken, optionalToken } = require("../util/jwt");
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 const multer = require('multer');
@@ -92,7 +92,7 @@ router.delete("/me", authenticateToken, async (req, res) => {
 })
 
 //get user by user ID
-router.get("/userId/:userId", authenticateToken, async (req, res) => {
+router.get("/userId/:userId", optionalToken, async (req, res) => {
     try {
         const user = await userService.getUserByUserId(req.params.userId);
         return res.status(200).json(user);
