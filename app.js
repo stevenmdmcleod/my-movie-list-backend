@@ -11,6 +11,8 @@ const userController = require('./controller/userController');
 
 const watchlistController = require('./controller/watchlistController');
 
+const watchmodeController = require('./controller/watchmodeController');
+
 const { authenticateToken } = require('./util/jwt');
 
 //console.log(`running on port ${PORT}`);
@@ -21,6 +23,8 @@ app.use("/users", userController);
 app.use(loggerMiddleware);
 
 app.use("/watchlist", watchlistController);
+
+app.use('/watchmode', watchmodeController);
 
 function loggerMiddleware(req, res, next){
   logger.info(`Incoming ${req.method} : ${req.url}`);
