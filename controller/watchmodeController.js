@@ -11,6 +11,7 @@ router.get('/title/:titleId', async (req, res) => {
             return res.status(200).json(responseJSON)
         }
     } catch (error) {
+        logger.error(`Error retrieving title from Watchmode API for title: ${req.params.titleId}`);
         return res.status(400).json(error.message);
     }
 })
