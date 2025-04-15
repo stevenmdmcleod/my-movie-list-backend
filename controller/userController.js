@@ -42,7 +42,7 @@ router.post("/login", async (req, res) => {
             },
                 SECRET_KEY,
             {
-                expiresIn: "30m"
+                expiresIn: "60m"
         })
         res.status(200).json({message: "You have logged in!", token});
     }else{
