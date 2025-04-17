@@ -38,6 +38,4 @@ function loggerMiddleware(req, res, next){
 
 
 
-app.listen(PORT, () => {
-      console.log(`Server is listening on PORT: ${PORT}`);
-  });
+app.listen(3000, '0.0.0.0', () => console.log("Server running on 0.0.0.0:3000"));
