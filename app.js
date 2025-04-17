@@ -6,9 +6,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://18.218.51.22:3000/'],
+  origin: ['http://localhost:3000', 'http://18.218.51.22:3000/', 'http://production-my-movie-list-frontend.s3-website.us-east-2.amazonaws.com/'],
   credentials: true, // if using cookies/sessions
 }));
+
 const PORT = 3000;
 const userController = require('./controller/userController');
 
