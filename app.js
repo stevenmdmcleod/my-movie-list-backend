@@ -16,7 +16,7 @@ const watchmodeController = require('./controller/watchmodeController');
 const { authenticateToken } = require('./util/jwt');
 
 //console.log(`running on port ${PORT}`);
-
+//adding test comment for deployment
 
 app.use("/users", userController);
 
